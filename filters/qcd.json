@@ -1,0 +1,25 @@
+{
+    "name": "QCD",
+    "loggers": [
+        "QCDActionAggregate",
+        "QCDActionCardService",
+        "QCDActionFilterValuesUpdater",
+        "QCDActionTableService",
+        "QCDActionTableUpdateExecutor",
+        "QCDActionViewUpdater",
+        "QCDBoardCleaningService",
+        "QCDConsolidationService",
+        "QCDEscalationService",
+        "QCDExportConfigurationsService",
+        "QCDExportConfigurationsServlet",
+        "QCDGetActionsListFilterService",
+        "QCDGetActionsListFilterServlet",
+        "QCDGetChildrenService",
+        "QCDLetterActionDeletionService",
+        "QCDLetterDeletionService",
+        "QCDPeriodService",
+        "QCDPeriodServlet",
+        "QCDRetrievalService",
+        "QCDRetrievalUtils"
+    ]
+}

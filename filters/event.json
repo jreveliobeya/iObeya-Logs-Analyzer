@@ -1,0 +1,9 @@
+{
+    "name": "event",
+    "loggers": [
+        "DefaultEventHandlerCaller",
+        "DefaultRetryingEventHandlerCaller",
+        "EventPlayerDbImplsMonitor",
+        "PluginEventListener"
+    ]
+}

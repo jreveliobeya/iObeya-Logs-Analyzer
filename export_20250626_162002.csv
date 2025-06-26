@@ -1,0 +1,21 @@
+period_date,logger_name,total_count
+2025-06-03 00:00:00,QCDActionCardService,176
+2025-06-03 00:00:00,QCDActionTableService,1903
+2025-06-03 00:00:00,QCDActionTableUpdateExecutor,508
+2025-06-03 00:00:00,QCDConsolidationService,2943
+2025-06-03 00:00:00,QCDGetActionsListFilterService,6345
+2025-06-03 00:00:00,QCDLetterActionDeletionService,16
+2025-06-03 00:00:00,QCDPeriodService,286
+2025-06-03 00:00:00,QCDPeriodServlet,286
+2025-06-03 00:00:00,QCDRetrievalService,1235
+2025-06-03 00:00:00,QCDRetrievalUtils,117
+2025-06-04 00:00:00,QCDActionCardService,342
+2025-06-04 00:00:00,QCDActionTableService,6275
+2025-06-04 00:00:00,QCDActionTableUpdateExecutor,1510
+2025-06-04 00:00:00,QCDConsolidationService,6587
+2025-06-04 00:00:00,QCDGetActionsListFilterService,20899
+2025-06-04 00:00:00,QCDLetterActionDeletionService,386
+2025-06-04 00:00:00,QCDPeriodService,310
+2025-06-04 00:00:00,QCDPeriodServlet,310
+2025-06-04 00:00:00,QCDRetrievalService,246
+2025-06-04 00:00:00,QCDRetrievalUtils,123
