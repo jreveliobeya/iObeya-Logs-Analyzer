@@ -122,3 +122,30 @@ YYYY-MM-DD HH:MM:SS LEVEL [logger_name] Message content
 -   **Bug Fixes**:
     -   Resolved a `ValueError` crash in the statistics panel when no data was loaded.
     -   Fixed a `NameError` that prevented the Pareto chart from rendering correctly.
+
+## Roadmap
+
+Here is a list of planned features and improvements, prioritized by their expected impact on usability and functionality.
+
+### Priority 1: Core Usability & Bug Fixes
+-   **Fix Timeline Reset Bug**: Prevent the timeline's date range from resetting after loading a new archive.
+-   **Verify Full-Text Search**: Thoroughly test and stabilize the free-text search functionality across all log entries.
+-   **Cancellable Loading**: Implement the ability to cancel an ongoing archive loading process, with an option to keep any data loaded so far.
+-   **Improve Timeline Navigation**: Overhaul the UI for zooming and panning on the timeline to make it more intuitive and responsive.
+-   **Dynamic Zoom Y-Axis**: Add an option to automatically rescale the timeline's Y-axis (height) based on the visible data when zoomed or panned.
+
+### Priority 2: Major Feature Enhancements
+-   **Pre-Load Filters**: Integrate the filter management system into the archive selection dialog, allowing users to apply a filter *before* loading data.
+-   **Next/Previous Message Navigation**: Add "Next" and "Previous" buttons to the message detail view to quickly jump between entries of the same logger type.
+-   **"View in Original File"**: Add a feature to open the original log file and navigate directly to the line corresponding to a selected log entry.
+-   **In-View Severity Filtering**: Allow users to apply temporary severity filters to the currently displayed list of messages without reloading.
+-   **Memory Management**: Introduce a feature to manually unload/delete specific message types from memory to improve performance with extremely large datasets.
+
+### Priority 3: UI/UX & Quality of Life
+-   **Welcome Screen**: Create a startup dialog that shows a list of recent files and provides quick actions to load a new log or archive.
+-   **Dark Mode**: Implement a full dark theme for the application.
+-   **Default Timeline Range**: Allow setting a default time window using the calendar icon in the toolbar.
+-   **Application Icon**: Add a custom application icon.
+
+### Priority 4: Advanced Functionality
+-   **Advanced Search with Regex**: Enhance the search functionality to support regular expressions, value extraction (e.g., capturing numbers), and conditional highlighting based on predefined thresholds.
