@@ -19,7 +19,7 @@ import tempfile
 import shutil
 
 class LogLoaderThread(QThread):
-    finished_loading = pyqtSignal(object, object) # df, failed_files_summary
+    finished_loading = pyqtSignal(object, object, bool) # df, failed_files_summary, was_cancelled
     error_occurred = pyqtSignal(str)
 
     # Signals for the loading dialog
@@ -44,12 +44,12 @@ class LogLoaderThread(QThread):
         self.encodings_to_try = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
 
     def run(self):
+        all_log_entries = []
+        failed_files_summary = []
         try:
             if not self.temp_dir or not os.path.exists(self.temp_dir):
                 raise Exception("Temporary directory not provided or does not exist.")
 
-            all_log_entries = []
-            failed_files_summary = []
             if self.archive_path:
                 self.status_update.emit("Processing archive...", os.path.basename(self.archive_path))
                 all_log_entries, failed_files_summary = self._process_archive()
@@ -61,29 +61,29 @@ class LogLoaderThread(QThread):
                 return
 
             if self.should_stop:
-                self.status_update.emit("Loading cancelled.", "")
+                # If we were stopped, we don't sort, just return what we have.
                 return
 
             if all_log_entries:
                 self.status_update.emit("Finalizing...", f"Sorting {len(all_log_entries):,} entries")
-
-                # Sort by datetime_obj primarily, then by original datetime string for stability
                 def sort_key(entry):
                     dt_obj = entry.get('datetime_obj')
-                    # Handle cases where datetime_obj might be min (parse error) or None
                     if isinstance(dt_obj, datetime) and dt_obj != datetime.min: return dt_obj
-                    try:  # Fallback to parsing the string again if obj is bad
+                    try:
                         return datetime.strptime(entry.get('datetime', ''), self.datetime_format_for_parsing)
-                    except:  # If truly unparseable, sort to the end
-                        return datetime.max  # Sort unparseable/invalid dates to the end
-
+                    except:
+                        return datetime.max
                 all_log_entries.sort(key=sort_key)
 
-            if not self.should_stop:
-                df_log_entries = pd.DataFrame(all_log_entries)
-                self.finished_loading.emit(df_log_entries, failed_files_summary)
         except Exception as e:
+            import traceback
+            print(traceback.format_exc())
             self.error_occurred.emit(f"Unexpected error during loading: {str(e)}")
+        finally:
+            # This block will run no matter what: success, exception, or return.
+            # This ensures the main thread is always notified.
+            df_log_entries = pd.DataFrame(all_log_entries) if all_log_entries else pd.DataFrame()
+            self.finished_loading.emit(df_log_entries, failed_files_summary, self.should_stop)
 
     def _process_archive(self):
         all_entries = []
@@ -220,3 +220,4 @@ class LogLoaderThread(QThread):
 
     def stop(self):
         self.should_stop = True
+

@@ -123,18 +123,26 @@ YYYY-MM-DD HH:MM:SS LEVEL [logger_name] Message content
     -   Resolved a `ValueError` crash in the statistics panel when no data was loaded.
     -   Fixed a `NameError` that prevented the Pareto chart from rendering correctly.
 
+## Changelog
+
+### v6.0 (Current)
+- **Chargement Annulable**: Implémentation de la possibilité d'annuler un processus de chargement en cours, avec une option pour conserver les données déjà chargées.
+- **Refonte de l'UI et de la Logique**: Passage à une architecture `AppLogic` centralisée pour une meilleure maintenabilité.
+- **Amélioration des Performances**: Intégration de `VirtualTreeWidget` pour un affichage quasi instantané de milliers de types de messages.
+- **Filtres Pré-chargement**: Ajout d'un système de gestion de filtres persistants.
+- **Stabilité Améliorée**:
+    - Résolution d'un crash `ValueError` dans le panneau de statistiques.
+    - Correction d'une `NameError` qui empêchait le graphique de Pareto de s'afficher.
+
 ## Roadmap
 
-Here is a list of planned features and improvements, prioritized by their expected impact on usability and functionality.
-
-### Priority 1: Core Usability & Bug Fixes
--   **Fix Timeline Reset Bug**: Prevent the timeline's date range from resetting after loading a new archive.
+- **Correction du Bug de Reset de la Timeline**: Empêcher la plage de dates de la timeline de se réinitialiser après le chargement d'une nouvelle archive.
+- **Recherche Plein Texte**: Tester et stabiliser la fonctionnalité de recherche en texte libre.
 -   **Verify Full-Text Search**: Thoroughly test and stabilize the free-text search functionality across all log entries.
--   **Cancellable Loading**: Implement the ability to cancel an ongoing archive loading process, with an option to keep any data loaded so far.
 -   **Improve Timeline Navigation**: Overhaul the UI for zooming and panning on the timeline to make it more intuitive and responsive.
 -   **Dynamic Zoom Y-Axis**: Add an option to automatically rescale the timeline's Y-axis (height) based on the visible data when zoomed or panned.
 
-### Priority 2: Major Feature Enhancements
+{{ ... }}
 -   **Pre-Load Filters**: Integrate the filter management system into the archive selection dialog, allowing users to apply a filter *before* loading data.
 -   **Next/Previous Message Navigation**: Add "Next" and "Previous" buttons to the message detail view to quickly jump between entries of the same logger type.
 -   **"View in Original File"**: Add a feature to open the original log file and navigate directly to the line corresponding to a selected log entry.

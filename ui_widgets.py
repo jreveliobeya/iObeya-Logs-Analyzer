@@ -24,10 +24,13 @@ class SortableTreeWidgetItem(QtWidgets.QTreeWidgetItem):
 
 
 class LoadingDialog(QtWidgets.QDialog):
+    cancelled = QtCore.pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Loading Logs")
         self.setMinimumSize(450, 200)
+        # Prevent closing via the 'X' button, force use of Cancel button
         self.setWindowFlags(QtCore.Qt.Dialog | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -67,6 +70,22 @@ class LoadingDialog(QtWidgets.QDialog):
         self.message_counter_label.setAlignment(QtCore.Qt.AlignRight)
         self.message_counter_label.setStyleSheet("font-size: 11px; color: #777; margin-top: 5px;")
         layout.addWidget(self.message_counter_label)
+
+        # --- Cancel Button ---
+        self.button_box = QtWidgets.QDialogButtonBox()
+        self.cancel_button = self.button_box.addButton("Cancel", QtWidgets.QDialogButtonBox.RejectRole)
+        self.cancel_button.clicked.connect(self.reject) # Connect to reject
+        layout.addWidget(self.button_box)
+
+    def reject(self):
+        """Override reject to emit the cancelled signal."""
+        self.cancelled.emit()
+        super().reject()
+
+    def closeEvent(self, event):
+        """Handle the user clicking the 'X' button on the window frame."""
+        self.cancelled.emit()
+        event.accept()
 
     def set_filter_name(self, filter_name):
         self.filter_label.setText(f"Filter: {filter_name if filter_name else 'None'}")

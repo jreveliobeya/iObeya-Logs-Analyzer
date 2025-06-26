@@ -40,6 +40,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         self.loaded_source_type = None
         self.current_temp_dir = None
         self.filter_dialog = None
+        self.loading_cancelled_by_user = False
 
         # --- Persistent Settings ---
         self.settings = QSettings("MyCompany", "TimelineLogAnalyzer")
@@ -139,6 +140,11 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         self.active_filter_label.setStyleSheet("padding-left: 5px; padding-right: 5px; border: 1px solid #555;")
         toolbar.addWidget(self.active_filter_label)
 
+        # Add a label to display the current log source
+        self.source_label = QtWidgets.QLabel("Source: None")
+        self.source_label.setToolTip("The currently loaded log source.")
+        self.source_label.setStyleSheet("padding-left: 10px;") # Add some spacing
+        toolbar.addWidget(self.source_label)
 
         toolbar.addSeparator()
 
@@ -325,8 +331,11 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self, "Loading in Progress", "A file or archive is already being loaded.")
             return
 
-        self._cleanup_temp_dir()  # Clean up old temp dir before starting new load
+        self._cleanup_temp_dir()
         self.current_temp_dir = tempfile.mkdtemp(prefix='log_analyzer_')
+
+        # Reset cancellation flag for the new loading process
+        self.loading_cancelled_by_user = False
 
         if archive_path:
             self.current_loaded_source_name = os.path.basename(archive_path)
@@ -340,7 +349,6 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
 
         self.loading_dialog = LoadingDialog(self)
 
-        # Pass the active filter name to the dialog
         active_filter_name = self.app_logic.get_active_filter_name()
         self.loading_dialog.set_filter_name(active_filter_name)
 
@@ -353,7 +361,6 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             active_filter_loggers=self.app_logic.active_filter_loggers
         )
 
-        # Connect the new signals to the dialog's slots
         self.loader_thread.status_update.connect(self.loading_dialog.update_status)
         self.loader_thread.file_progress_config.connect(self.loading_dialog.set_progress_range)
         self.loader_thread.file_progress_update.connect(self.loading_dialog.set_progress_value)
@@ -365,8 +372,17 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         self.loader_thread.error_occurred.connect(self.on_load_error)
         self.loader_thread.finished.connect(self.on_load_finished)
 
-        self.loading_dialog.show()
+        # Connect the dialog's cancel signal to our new handler
+        self.loading_dialog.cancelled.connect(self._handle_cancel_request)
+
         self.loader_thread.start()
+        self.loading_dialog.open() # Use open() for a non-blocking modal dialog
+
+    def _handle_cancel_request(self):
+        """Sets a flag and attempts to stop the thread."""
+        self.loading_cancelled_by_user = True
+        if self.loader_thread:
+            self.loader_thread.stop()
 
     @QtCore.pyqtSlot(float, float)
     def update_timeline_sliders_range(self, min_num, max_num):
@@ -456,43 +472,93 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             else:
                 QtWidgets.QMessageBox.information(self, "No Files Selected", "You did not select any files to load.")
 
-    def on_log_data_loaded(self, log_entries_df, failed_files_summary):
+    def on_log_data_loaded(self, log_entries_df, failed_files_summary, was_cancelled_by_thread):
+        # Always close the loading dialog first
         if self.loading_dialog:
-            self.loading_dialog.update_status("Finalizing...", "Displaying results.")
             self.loading_dialog.accept()
+
+        was_cancelled = self.loading_cancelled_by_user
+
+        # Handle cancellation: if user cancels and decides to discard data, or if there's no data.
+        if was_cancelled:
+            if log_entries_df.empty:
+                QtWidgets.QMessageBox.information(self, "Loading Cancelled", "The loading process was cancelled before any data could be loaded.")
+                return
+
+            # If there is partial data, ask the user.
+            reply = QtWidgets.QMessageBox.question(
+                self, 'Loading Cancelled',
+                f"The loading process was cancelled.\n\nDo you want to keep the {len(log_entries_df):,} entries loaded so far?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                QtWidgets.QMessageBox.Yes
+            )
+
+            if reply == QtWidgets.QMessageBox.No:
+                self.statusBar().showMessage("Loading cancelled. Discarded partial data.", 5000)
+                self.log_entries_full = pd.DataFrame() # Clear data
+                # Update canvas and UI with empty data
+                self.app_logic.set_full_log_data(self.log_entries_full)
+                self.app_logic.reset_all_filters_and_view(initial_load=True)
+                return # Stop further processing
+
+        # --- If we reach here, we are proceeding with loading the data (full or partial) ---
         self.log_entries_full = log_entries_df
+
+        # Update status bar based on what happened
+        if not self.log_entries_full.empty:
+            if was_cancelled:
+                self.statusBar().showMessage(f"Loading cancelled. Displaying {len(self.log_entries_full):,} partially loaded entries.", 10000)
+            else:
+                self.statusBar().showMessage(f"Successfully loaded {len(self.log_entries_full):,} entries.", 5000)
+        else:
+            # This case happens if not cancelled but the file was empty.
+            self.statusBar().showMessage("No log entries were loaded.", 5000)
+
+        # Update UI elements
         self.setWindowTitle(f"Timeline Log Analyzer - {self.current_loaded_source_name}")
+        if self.current_loaded_source_name:
+            source_type_str = 'Archive' if self.loaded_source_type == 'archive' else 'File'
+            self.source_label.setText(f"Source: {self.current_loaded_source_name} ({source_type_str})")
 
-        if hasattr(self.selected_messages_list, 'set_all_items_data'):
-            self.selected_messages_list.set_all_items_data([])
-        self.details_text.clear()
+        # Pass data to AppLogic/Canvas and reset the entire view, which triggers the timeline plot.
+        self.app_logic.set_full_log_data(self.log_entries_full)
+        self.app_logic.reset_all_filters_and_view(initial_load=True)
 
+        # Finally, show a summary of any files that failed to load
+        if failed_files_summary:
+            error_details = "\n".join(
+                [f"- {os.path.basename(item['file'])}: {item['error']}" for item in failed_files_summary]
+            )
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Some Files Failed to Load",
+                f"Could not load all files. The following errors occurred:\n\n{error_details}"
+            )
+
+        # Close the statistics dialog if it's open, as its data is now stale
         if self.stats_dialog and self.stats_dialog.isVisible():
-            self.stats_dialog.close();
+            self.stats_dialog.close()
             self.stats_dialog = None
 
-        self.timeline_canvas.set_full_log_data(self.log_entries_full)
-        self.app_logic.reset_all_filters_and_view(initial_load=True) # Call on app_logic
-        self.app_logic.select_top10_message_types() # Automatically select top 10 message types
-        self.loading_dialog.accept() # Close the loading dialog
-
-        if not self.log_entries_full.empty and not self._is_batch_updating_ui:
-             self._trigger_timeline_update_from_selection()
+        # --- Repopulate UI with new data ---
+        # This will set the new data on the timeline and reset all filters and views
+        self.app_logic.reset_all_filters_and_view(initial_load=True)
 
 
+
+        # Show warning for files that failed to load
         if failed_files_summary:
             error_details = "\n".join(
                 [f"- {fname}: {reason}" for fname, reason in failed_files_summary[:15]])
-            if len(failed_files_summary) > 15: error_details += f"\n...and {len(failed_files_summary) - 15} more."
+            if len(failed_files_summary) > 15:
+                error_details += f"\n...and {len(failed_files_summary) - 15} more."
             QtWidgets.QMessageBox.warning(self, "Archive Loading Issues",
                                           f"Some files within the archive could not be processed:\n{error_details}")
 
-        if self.log_entries_full.empty: 
-            if not self._is_batch_updating_ui:
-                self.timeline_canvas.plot_timeline()
-                self.update_timeline_sliders_range(0, 0)
+        # If, after all that, we have no data, show a final info box.
+        if self.log_entries_full.empty and not was_cancelled:
             QtWidgets.QMessageBox.information(self, "No Data Loaded",
-                                          "No log entries were found or loaded from the source.")
+                                              "No log entries were found or loaded from the source.")
 
     def on_load_error(self, error_message: str):
         """Handles errors emitted from the LogLoaderThread."""
@@ -870,6 +936,12 @@ def main():
     app.setApplicationName("Timeline Log Analyzer")
     app.setApplicationVersion("6.0")
     app.setOrganizationName("LogAnalyzer")
+
+    # Set application icon
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'images', 'app_icon.png')
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QtGui.QIcon(icon_path))
+
     try:
         app.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
     except:

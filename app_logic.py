@@ -23,6 +23,10 @@ class AppLogic(QtCore.QObject):
         self.active_filter_name = "None"
         self.active_filter_loggers = set() # A set for efficient lookup
 
+    def set_full_log_data(self, df):
+        """Passes the full DataFrame to the timeline canvas for its internal caching."""
+        if self.mw.timeline_canvas:
+            self.mw.timeline_canvas.set_full_log_data(df)
 
     # ... (reset_all_filters_and_view, _rebuild_message_types_data_and_list)
     # ... (trigger_timeline_update_from_selection, on_granularity_changed, on_slider_value_changed)
@@ -102,30 +106,8 @@ class AppLogic(QtCore.QObject):
         finally:
             self.mw._exit_batch_update()
 
-        # Apply all (now reset) filters to update the main list and timeline
+        # Apply all (now reset) filters to update the main list and timeline.
         self._apply_filters_and_update_views()
-        
-        # Update timeline display based on current (likely all) message types and granularity
-        # This needs to happen *after* _apply_filters_and_update_views if that method doesn't already handle it
-        # or if the timeline needs a specific update based on the full dataset view after reset.
-        current_granularity = self.mw.granularity_combo.currentText() if self.mw.granularity_combo else 'minute'
-        log_data_exists = hasattr(self.mw, 'log_entries_full') and not self.mw.log_entries_full.empty
-
-        selected_types_for_timeline = set()
-        if self.mw.message_types_tree:
-            for i in range(self.mw.message_types_tree.topLevelItemCount()):
-                item = self.mw.message_types_tree.topLevelItem(i)
-                if item.checkState(0) == QtCore.Qt.Checked: # Should be all checked after reset
-                    selected_types_for_timeline.add(item.text(0))
-        
-        if self.mw.timeline_canvas:
-            self.mw.timeline_canvas.update_display_config(selected_types_for_timeline, current_granularity)
-
-        if initial_load and not log_data_exists:
-            self.update_timeline_sliders_range(0, 0)
-        # If log_data_exists, the timeline range should be updated by update_display_config or a subsequent call
-        # based on the full dataset. The sliders might need adjustment based on the full range of data.
-        # This part might need refinement based on how update_timeline_sliders_range interacts with plot_timeline.
 
         if not initial_load and self.mw.statusBar():
             self.mw.statusBar().showMessage("Vue et filtres réinitialisés", 3000)
@@ -406,6 +388,11 @@ class AppLogic(QtCore.QObject):
             if self.timeline_filter_active:
                 status_message += f" (Intervalle: {self.timeline_filter_start_time.strftime('%H:%M:%S')} - {self.timeline_filter_end_time.strftime('%H:%M:%S')})"
             self.mw.statusBar().showMessage(status_message, 3000)
+
+        # Update timeline view with the same set of selected types
+        if self.mw.timeline_canvas:
+            granularity = self.mw.granularity_combo.currentText() if self.mw.granularity_combo else 'minute'
+            self.mw.timeline_canvas.update_display_config(tree_selected_types, granularity)
 
     def _fetch_full_log_entry(self, metadata_entry):
         source_file_path = metadata_entry.get('source_file_path')
