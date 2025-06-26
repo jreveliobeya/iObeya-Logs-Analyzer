@@ -16,6 +16,8 @@ This tool provides an interactive timeline-based interface to help developers an
 -   **Rich Statistics**: An integrated dialog displays a breakdown of log levels and a Pareto chart of the most frequent message types, helping to identify the most common issues at a glance.
 -   **Filter Management**: Save a complex set of message type filters to a file and re-apply it later, perfect for investigating recurring problems.
 -   **Data Export**: Export the currently filtered log data to a CSV file for reporting or further analysis.
+-   **Welcome Screen**: A helpful startup dialog provides quick access to recent files and actions to load new logs, streamlining the initial workflow.
+-   **Application Icon**: Features a custom application icon for better desktop integration.
 
 ## Gallery
 
@@ -30,6 +32,9 @@ This tool provides an interactive timeline-based interface to help developers an
 
 ### Statistics Dialog
 ![Statistics Dialog](images/stats_dialog.jpg)
+
+### Welcome Screen
+![Welcome Screen](images/welcome_screen.jpg)
 
 ## Installation
 
@@ -150,10 +155,8 @@ YYYY-MM-DD HH:MM:SS LEVEL [logger_name] Message content
 -   **Memory Management**: Introduce a feature to manually unload/delete specific message types from memory to improve performance with extremely large datasets.
 
 ### Priority 3: UI/UX & Quality of Life
--   **Welcome Screen**: Create a startup dialog that shows a list of recent files and provides quick actions to load a new log or archive.
 -   **Dark Mode**: Implement a full dark theme for the application.
 -   **Default Timeline Range**: Allow setting a default time window using the calendar icon in the toolbar.
--   **Application Icon**: Add a custom application icon.
 
 ### Priority 4: Advanced Functionality
 -   **Advanced Search with Regex**: Enhance the search functionality to support regular expressions, value extraction (e.g., capturing numbers), and conditional highlighting based on predefined thresholds.

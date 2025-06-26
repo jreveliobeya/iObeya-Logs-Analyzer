@@ -19,6 +19,7 @@ from statistics_dialog import StatsDialog
 from app_logic import AppLogic # Added import
 from archive_selection_dialog import ArchiveSelectionDialog
 from filter_dialog import FilterManagementDialog
+from welcome_dialog import WelcomeDialog
 
 class LogAnalyzerApp(QtWidgets.QMainWindow):
     def __init__(self):
@@ -59,7 +60,10 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
 
         self.setup_ui()
         self.app_logic.reset_all_filters_and_view(initial_load=True)
-        self.load_settings() 
+        self.load_settings()
+
+        # Show welcome screen after main window is setup and settings are loaded
+        QtCore.QTimer.singleShot(0, self.show_welcome_screen_if_needed) 
 
     def _enter_batch_update(self):
         self._is_batch_updating_ui = True
@@ -869,26 +873,46 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             self.recent_files_menu.addAction(action)
         self.recent_files_menu.setEnabled(bool(self.recent_files))
 
+    def _open_path(self, path):
+        """Internal helper to open a file or archive from a given path."""
+        if not os.path.exists(path):
+            QtWidgets.QMessageBox.warning(self, "File Not Found", f"The file {path} could not be found.")
+            if path in self.recent_files:
+                self.recent_files.remove(path)
+                self.update_recent_files_menu()
+            return
+
+        if path.lower().endswith('.zip'):
+            dialog = ArchiveSelectionDialog(path, self)
+            if dialog.exec_():
+                selected_files = dialog.get_selected_files()
+                if selected_files:
+                    self._initiate_loading_process(archive_path=path, selected_files=selected_files)
+        else:
+            self._initiate_loading_process(file_path=path)
+
     def open_recent_file(self):
         """Opens a file selected from the 'Recent Files' menu."""
         action = self.sender()
         if action:
             path = action.data()
-            if not os.path.exists(path):
-                QtWidgets.QMessageBox.warning(self, "File Not Found", f"The file {path} could not be found.")
-                if path in self.recent_files:
-                    self.recent_files.remove(path)
-                    self.update_recent_files_menu()
-                return
+            self._open_path(path)
 
-            if path.lower().endswith('.zip'):
-                dialog = ArchiveSelectionDialog(path, self)
-                if dialog.exec_():
-                    selected_files = dialog.get_selected_files()
-                    if selected_files:
-                        self._initiate_loading_process(archive_path=path, selected_files=selected_files)
-            else:
-                self._initiate_loading_process(file_path=path)
+    def show_welcome_screen_if_needed(self):
+        # Show welcome screen only if no data is loaded and not opening a file via command line
+        if self.log_entries_full.empty:
+            dialog = WelcomeDialog(self.recent_files, self)
+            if dialog.exec_() == QtWidgets.QDialog.Accepted:
+                result = dialog.result
+                action = result.get('action')
+                path = result.get('path')
+
+                if action == 'open_file':
+                    self.load_log_file()
+                elif action == 'open_archive':
+                    self.load_log_archive()
+                elif action == 'open_recent' and path:
+                    self._open_path(path)
 
     def show_about_dialog(self):
         dialog = QtWidgets.QMessageBox(self)
