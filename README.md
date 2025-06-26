@@ -16,6 +16,20 @@ A powerful log analysis tool with a timeline-based visualization for exploring a
 -   **Detailed View**: Click on any log entry to see the full, multi-line message, including stack traces.
 -   **Robust Statistics**: View detailed statistics, including log level distribution and a Pareto chart for the most frequent message types.
 
+## Aperçu
+
+### Vue principale de l'application
+![Vue principale de l'application](images/application.jpg)
+
+### Chargement d'une archive
+![Chargement d'une archive](images/load_archive.jpg)
+
+### Gestion des filtres
+![Gestion des filtres](images/manage_filters.jpg)
+
+### Dialogue de statistiques
+![Dialogue de statistiques](images/stats_dialog.jpg)
+
 ## Installation
 
 ### Prerequisites
