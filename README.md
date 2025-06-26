@@ -1,93 +1,107 @@
-# Timeline Log Analyzer
+# iObeya Log Analyzer
 
-A powerful log analysis tool with a timeline-based visualization for exploring and filtering large log files and archives.
+A powerful desktop application for analyzing and visualizing iObeya log files, designed to handle large single logs and multi-file archives with ease.
 
-## Features
+## Overview
 
--   **Timeline Visualization**: View log entry distribution over time and interactively filter by time range.
--   **Advanced Filtering**: Filter logs by level (INFO, WARN, ERROR, DEBUG), message type, and free-text search.
--   **Archive Support**: Load and analyze `.zip` archives containing multiple log files.
--   **Enhanced Archive Loading**: An advanced dialog allows for precise selection of files from an archive:
-    -   Filter by log type (`app` or `error`).
-    -   Select a custom date range.
-    -   Quickly select the last "N" days of logs.
-    -   View the total duration of the selected period.
--   **Gzip Decompression**: Automatically handles `.log.gz` files, both standalone and within archives.
--   **Detailed View**: Click on any log entry to see the full, multi-line message, including stack traces.
--   **Robust Statistics**: View detailed statistics, including log level distribution and a Pareto chart for the most frequent message types.
+This tool provides an interactive timeline-based interface to help developers and support engineers navigate through thousands of log entries efficiently. It allows for rapid filtering by time, log level, and message type (logger), and supports loading compressed `.log.gz` files and `.zip` archives. Its primary goal is to turn complex log analysis from a chore into a fast and intuitive process.
 
-## Aperçu
+## Key Features
 
-### Vue principale de l'application
-![Vue principale de l'application](images/application.jpg)
+-   **Interactive Timeline**: Visualize log entry distribution over time. Click and drag to instantly filter by a specific time range.
+-   **Multi-Level Filtering**: Combine filters for log level, time range, message type, and free-text search to quickly isolate events.
+-   **Advanced Archive Loading**: A dedicated dialog provides precise control for loading files from `.zip` archives, allowing selection by filename patterns and date ranges.
+-   **Gzip & Encoding Support**: Automatically decompresses `.log.gz` files and handles multiple text encodings (`UTF-8`, `latin-1`, etc.).
+-   **Detailed View**: A dedicated panel shows the full, multi-line content of any selected log entry, including full stack traces.
+-   **Rich Statistics**: An integrated dialog displays a breakdown of log levels and a Pareto chart of the most frequent message types, helping to identify the most common issues at a glance.
+-   **Filter Management**: Save a complex set of message type filters to a file and re-apply it later, perfect for investigating recurring problems.
+-   **Data Export**: Export the currently filtered log data to a CSV file for reporting or further analysis.
 
-### Chargement d'une archive
-![Chargement d'une archive](images/load_archive.jpg)
+## Gallery
 
-### Gestion des filtres
-![Gestion des filtres](images/manage_filters.jpg)
+### Main Application View
+![Main Application View](images/application.jpg)
 
-### Dialogue de statistiques
-![Dialogue de statistiques](images/stats_dialog.jpg)
+### Advanced Archive Loading
+![Advanced Archive Loading](images/load_archive.jpg)
+
+### Filter Management
+![Filter Management](images/manage_filters.jpg)
+
+### Statistics Dialog
+![Statistics Dialog](images/stats_dialog.jpg)
 
 ## Installation
 
 ### Prerequisites
 
 -   Python 3.6+
+-   An environment manager like `venv` or `conda` is recommended.
 
-### Setup
+### Steps
 
-1.  **Clone the repository (or download the source code):**
+1.  **Clone the repository:**
     ```bash
-    git clone <repository_url>
-    cd <repository_directory>
+    git clone https://github.com/jreveliobeya/iObeya-Logs-Analyzer.git
+    cd iObeya-Logs-Analyzer
     ```
 
-2.  **Create a virtual environment (recommended):**
+2.  **Create and activate a virtual environment (recommended):**
     ```bash
-    python3 -m venv venv
+    python -m venv venv
     source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
     ```
 
-3.  **Install the required dependencies:**
+3.  **Install the required packages:**
     ```bash
     pip install -r requirements.txt
     ```
 
 ## Usage
 
-To run the application, execute the main script from the root directory of the project:
+To run the application, execute the main script from the project's root directory:
 
 ```bash
-python3 iobeya_log_analyzer.py
+python iobeya_log_analyzer.py
 ```
 
 ### Loading Logs
 
--   **Load File**: Use the "Load File" button to open a single log file (`.log`, `.txt`) or a compressed log file (`.log.gz`).
--   **Load Archive**: Use the "Load Archive" button to open a `.zip` archive. A dialog will appear with powerful options to filter and select files:
-    -   **Log Type**: Choose between `app` or `error` logs. `app` is selected by default.
-    -   **Date Range**: Manually set a "From" and "To" date. The total duration of the selection is displayed at the top.
-    -   **Last N Days**: Use the spinbox to automatically select the last N days of available logs, which updates the date range for you.
+-   **Load Single File**: Use `File > Load Log File` to open a single `.log` or `.log.gz` file.
+-   **Load Archive**: Use `File > Load Log Archive` to open a `.zip` archive. This opens the **Archive Selection Dialog**, where you can filter files by name (e.g., `app`, `error`) and date range before loading.
 
-## Configuration
+### The Interface
 
-The application is designed to parse log files with the following format:
+-   **Timeline (Top)**: Shows log volume over time. Click and drag to select a time range. Use the granularity dropdown (Minute, Hour, Day) and the pan/zoom sliders to navigate.
+-   **Filters & Message Types (Left)**: Contains controls for filtering.
+    -   **Log Levels**: Toggle `INFO`, `WARN`, `ERROR`, `DEBUG` from the toolbar.
+    -   **Message Types**: Search, select, or deselect specific logger names. Use `Top 5`/`Top 10` to quickly focus on the most frequent loggers.
+-   **Log Entries (Right)**: Displays the filtered log entries. The search bar provides free-text filtering. Click an entry to see its full content in the panel below.
+
+### Advanced Workflows
+
+-   **Investigating an Incident**: Start by loading the relevant archive and selecting the approximate date range. Use the timeline to narrow down the period of high activity. Then, use the message type and log level filters to isolate error messages and their context.
+-   **Managing Recurring Errors**: When you've identified the set of logger names related to a specific problem, use `Tools > Manage Filters > Save Current Selection` to save it. The next time the issue occurs, you can use `Apply Filter` to instantly apply this view to a new set of logs.
+-   **Performance Analysis**: Use the `Tools > Show Statistics` dialog to identify the noisiest components in your system. A high frequency of certain logs could indicate performance bottlenecks or misconfigurations.
+
+## Expected Log Format
+
+The parser expects log entries to follow this structure:
 
 ```
-YYYY-MM-DD HH:MM:SS LEVEL [logger_name] Message content...
+YYYY-MM-DD HH:MM:SS LEVEL [logger_name] Message content
 ```
 
 **Example:**
+
 ```
-2025-04-01 10:30:00 ERROR [com.example.MyClass] An unexpected error occurred.
-java.lang.RuntimeException: Something went wrong
-    at com.example.MyClass.doSomething(MyClass.java:42)
-    ...
+2024-05-20 14:35:01 INFO [com.iobeya.service.RoomService] User 'admin' entered room '123'
+2024-05-20 14:35:02 ERROR [com.iobeya.service.Database] Failed to execute query: Connection timed out.
+  at com.iobeya.service.Database.executeQuery(Database.java:101)
+  at com.iobeya.service.RoomService.loadData(RoomService.java:50)
 ```
 
-The log parsing logic is located in `log_processing.py`. If your log format differs, you may need to adjust the regular expression in the `_parse_log_from_iterator` method.
+-   Multi-line content (like stack traces) is automatically appended to the preceding entry.
 
 ## Recent Updates
 
