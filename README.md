@@ -18,6 +18,7 @@ This tool provides an interactive timeline-based interface to help developers an
 -   **Data Export**: Export the currently filtered log data to a CSV file for reporting or further analysis.
 -   **Welcome Screen**: A helpful startup dialog provides quick access to recent files and actions to load new logs, streamlining the initial workflow.
 -   **Application Icon**: Features a custom application icon for better desktop integration.
+-   **Message Navigation**: Quickly navigate between log entries of the same type directly from the details panel using "Next" and "Previous" buttons.
 
 ## Gallery
 
@@ -85,9 +86,15 @@ python iobeya_log_analyzer.py
 
 ### Advanced Workflows
 
--   **Investigating an Incident**: Start by loading the relevant archive and selecting the approximate date range. Use the timeline to narrow down the period of high activity. Then, use the message type and log level filters to isolate error messages and their context.
--   **Managing Recurring Errors**: When you've identified the set of logger names related to a specific problem, use `Tools > Manage Filters > Save Current Selection` to save it. The next time the issue occurs, you can use `Apply Filter` to instantly apply this view to a new set of logs.
--   **Performance Analysis**: Use the `Tools > Show Statistics` dialog to identify the noisiest components in your system. A high frequency of certain logs could indicate performance bottlenecks or misconfigurations.
+-   **Understanding Multi-Line Entries**: The application intelligently groups multi-line messages, such as stack traces, with their parent log entry. This ensures that a complete error report is treated as a single event.
+
+    *Example:*
+    A Java stack trace following an error message will be displayed as one entry:
+    ```
+    2024-05-20 14:35:02 ERROR [com.iobeya.service.Database] Failed to execute query: Connection timed out.
+      at com.iobeya.service.Database.executeQuery(Database.java:101)
+      at com.iobeya.service.RoomService.loadData(RoomService.java:50)
+    ```
 
 ## Expected Log Format
 
@@ -106,50 +113,28 @@ YYYY-MM-DD HH:MM:SS LEVEL [logger_name] Message content
   at com.iobeya.service.RoomService.loadData(RoomService.java:50)
 ```
 
--   Multi-line content (like stack traces) is automatically appended to the preceding entry.
-
-## Recent Updates
-
--   **Log View Enhancements**:
-    -   **Line Colorization**: Log lines in the detailed view are now colored based on their severity level (Red for ERROR, Orange for WARN) for quicker identification.
-
--   **Timeline Improvements**:
-    -   **Weekly Granularity**: The timeline can now be viewed with a "week" granularity, providing a broader overview of log activity.
-    -   **Enhanced Tooltips**: 
-        -   Hovering over the main date range display now shows a detailed tooltip with weekday names.
-        -   Tooltips on individual timeline bars now include the start and end day of the week for that bar.
-
--   **Archive Selection Dialog Overhaul**:
-    -   Improved UI with a clearer layout.
-    -   Added a "Last N Days" selector for quick filtering.
-    -   Added a dynamic label to show the selected time duration.
-    -   Removed the ambiguous "All" log type filter.
--   **Bug Fixes**:
-    -   Resolved a `ValueError` crash in the statistics panel when no data was loaded.
-    -   Fixed a `NameError` that prevented the Pareto chart from rendering correctly.
-
 ## Changelog
 
 ### v6.0 (Current)
-- **Chargement Annulable**: Implémentation de la possibilité d'annuler un processus de chargement en cours, avec une option pour conserver les données déjà chargées.
-- **Refonte de l'UI et de la Logique**: Passage à une architecture `AppLogic` centralisée pour une meilleure maintenabilité.
-- **Amélioration des Performances**: Intégration de `VirtualTreeWidget` pour un affichage quasi instantané de milliers de types de messages.
-- **Filtres Pré-chargement**: Ajout d'un système de gestion de filtres persistants.
-- **Stabilité Améliorée**:
-    - Résolution d'un crash `ValueError` dans le panneau de statistiques.
-    - Correction d'une `NameError` qui empêchait le graphique de Pareto de s'afficher.
+- **Cancellable Loading**: Implemented the ability to cancel an ongoing loading process, with an option to keep already loaded data.
+- **UI and Logic Overhaul**: Switched to a centralized `AppLogic` architecture for better maintainability.
+- **Performance Improvements**: Integrated `VirtualTreeWidget` for near-instant display of thousands of message types.
+- **Persistent Filters**: Added a system for managing and saving filter sets.
+- **Improved Stability**:
+    - Resolved a `ValueError` crash in the statistics panel.
+    - Fixed a `NameError` that prevented the Pareto chart from rendering.
+- **Enhanced Navigation**: Added "Previous" and "Next" buttons to quickly navigate between messages of the same type.
 
 ## Roadmap
 
-- **Correction du Bug de Reset de la Timeline**: Empêcher la plage de dates de la timeline de se réinitialiser après le chargement d'une nouvelle archive.
-- **Recherche Plein Texte**: Tester et stabiliser la fonctionnalité de recherche en texte libre.
+### Priority 1: Core Functionality & Bugs
+-   **Fix Timeline Reset Bug**: Prevent the timeline date range from resetting after loading a new archive.
 -   **Verify Full-Text Search**: Thoroughly test and stabilize the free-text search functionality across all log entries.
 -   **Improve Timeline Navigation**: Overhaul the UI for zooming and panning on the timeline to make it more intuitive and responsive.
--   **Dynamic Zoom Y-Axis**: Add an option to automatically rescale the timeline's Y-axis (height) based on the visible data when zoomed or panned.
+-   **Dynamic Y-Axis Zoom**: Add an option to automatically rescale the timeline's Y-axis based on the visible data when zoomed or panned.
 
-{{ ... }}
+### Priority 2: Feature Enhancements
 -   **Pre-Load Filters**: Integrate the filter management system into the archive selection dialog, allowing users to apply a filter *before* loading data.
--   **Next/Previous Message Navigation**: Add "Next" and "Previous" buttons to the message detail view to quickly jump between entries of the same logger type.
 -   **"View in Original File"**: Add a feature to open the original log file and navigate directly to the line corresponding to a selected log entry.
 -   **In-View Severity Filtering**: Allow users to apply temporary severity filters to the currently displayed list of messages without reloading.
 -   **Memory Management**: Introduce a feature to manually unload/delete specific message types from memory to improve performance with extremely large datasets.

@@ -319,10 +319,28 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         self.selected_messages_list.header().setSortIndicator(0, QtCore.Qt.AscendingOrder)
         layout.addWidget(self.selected_messages_list)
 
-        layout.addWidget(QtWidgets.QLabel("<b>Message Details</b>"))
-        self.details_text = QtWidgets.QTextEdit();
+        # --- Message Details Section with Navigation ---
+        details_header_layout = QtWidgets.QHBoxLayout()
+        details_header_layout.addWidget(QtWidgets.QLabel("<b>Message Details</b>"))
+        details_header_layout.addStretch()
+
+        self.prev_message_button = QtWidgets.QPushButton("Previous")
+        self.prev_message_button.setToolTip("Go to previous message of the same logger type")
+        self.prev_message_button.setEnabled(False)
+        self.prev_message_button.clicked.connect(self.app_logic.navigate_to_previous_message)
+        details_header_layout.addWidget(self.prev_message_button)
+
+        self.next_message_button = QtWidgets.QPushButton("Next")
+        self.next_message_button.setToolTip("Go to next message of the same logger type")
+        self.next_message_button.setEnabled(False)
+        self.next_message_button.clicked.connect(self.app_logic.navigate_to_next_message)
+        details_header_layout.addWidget(self.next_message_button)
+
+        layout.addLayout(details_header_layout)
+
+        self.details_text = QtWidgets.QTextEdit()
         self.details_text.setReadOnly(True)
-        self.details_text.setFontFamily("monospace");
+        self.details_text.setFontFamily("Courier")
         layout.addWidget(self.details_text)
         return right_widget
 

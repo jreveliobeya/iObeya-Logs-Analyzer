@@ -381,6 +381,9 @@ class AppLogic(QtCore.QObject):
         filtered_entries_list = filtered_df.to_dict('records')
 
         if self.mw.selected_messages_list:
+            self.mw.details_text.clear()
+            self.mw.prev_message_button.setEnabled(False)
+            self.mw.next_message_button.setEnabled(False)
             self.mw.selected_messages_list.set_all_items_data(filtered_entries_list)
         
         if self.mw.statusBar():
@@ -447,11 +450,41 @@ class AppLogic(QtCore.QObject):
         
         self._apply_filters_and_update_views()
 
+    def navigate_to_previous_message(self):
+        self._navigate_message(-1)
+
+    def navigate_to_next_message(self):
+        self._navigate_message(1)
+
+    def _navigate_message(self, direction):
+        selected_items = self.mw.selected_messages_list.selectedItems()
+        if not selected_items:
+            return
+
+        current_item = selected_items[0]
+        current_logger = current_item.text(2)  # Logger is in column 2
+        current_index = self.mw.selected_messages_list.indexOfTopLevelItem(current_item)
+
+        start_index = current_index + direction
+        if direction == -1:
+            search_range = range(start_index, -1, -1)
+        else:
+            search_range = range(start_index, self.mw.selected_messages_list.topLevelItemCount())
+
+        for i in search_range:
+            item = self.mw.selected_messages_list.topLevelItem(i)
+            if item and item.text(2) == current_logger:
+                self.mw.selected_messages_list.setCurrentItem(item)
+                self.mw.selected_messages_list.scrollToItem(item, QtWidgets.QAbstractItemView.PositionAtCenter)
+                return
+
     def on_message_selected(self):
         if not self.mw.selected_messages_list or not self.mw.details_text: return
         selected_items = self.mw.selected_messages_list.selectedItems()
         if not selected_items:
             self.mw.details_text.clear()
+            self.mw.prev_message_button.setEnabled(False)
+            self.mw.next_message_button.setEnabled(False)
             return
         
         metadata_entry = selected_items[0].data(0, QtCore.Qt.UserRole)
@@ -461,6 +494,29 @@ class AppLogic(QtCore.QObject):
 
         full_message_content = self._fetch_full_log_entry(metadata_entry)
         self.mw.details_text.setPlainText(full_message_content)
+
+        # Update navigation button states
+        selected_item = selected_items[0]
+        current_logger = selected_item.text(2)
+        current_index = self.mw.selected_messages_list.indexOfTopLevelItem(selected_item)
+
+        # Check for previous
+        has_prev = False
+        for i in range(current_index - 1, -1, -1):
+            item = self.mw.selected_messages_list.topLevelItem(i)
+            if item and item.text(2) == current_logger:
+                has_prev = True
+                break
+        self.mw.prev_message_button.setEnabled(has_prev)
+
+        # Check for next
+        has_next = False
+        for i in range(current_index + 1, self.mw.selected_messages_list.topLevelItemCount()):
+            item = self.mw.selected_messages_list.topLevelItem(i)
+            if item and item.text(2) == current_logger:
+                has_next = True
+                break
+        self.mw.next_message_button.setEnabled(has_next)
 
     def _get_currently_visible_message_types_sorted_by_count(self):
         if not self.mw.message_types_tree: return []
