@@ -24,7 +24,7 @@ from welcome_dialog import WelcomeDialog
 class LogAnalyzerApp(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Timeline Log Analyzer v6.0")
+        self.setWindowTitle("Timeline Log Analyzer v7.0")
         self.resize(1600, 1000)
         self.log_entries_full = pd.DataFrame() # Initialize as DataFrame
         self.message_types_data_for_list = {}
@@ -51,14 +51,16 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         self.MAX_RECENT_FILES = 10
 
 
-        self.app_logic = AppLogic(self) # Initialize AppLogic first
+        self.app_logic = AppLogic(self, self.statusBar()) # Initialize AppLogic first
 
         self.message_type_search_timer = QtCore.QTimer()
         self.message_type_search_timer.setSingleShot(True)
-        # NOW self.app_logic exists for the connection
-        self.message_type_search_timer.timeout.connect(self.app_logic.apply_message_type_filter) 
+        self.message_type_search_timer.timeout.connect(self.app_logic.apply_message_type_filter)
 
         self.setup_ui()
+
+        # --- Connect Global Search (with debouncing) ---
+        self.global_search_box.textChanged.connect(self.app_logic.on_global_search_changed)
         self.app_logic.reset_all_filters_and_view(initial_load=True)
         self.load_settings()
 
@@ -216,6 +218,20 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         self.granularity_combo.setCurrentText('minute')
         self.granularity_combo.currentTextChanged.connect(self.on_granularity_changed)
         controls_layout.addWidget(self.granularity_combo)
+
+        # Add a spacer for visual separation
+        spacer = QtWidgets.QWidget()
+        spacer.setFixedWidth(20)
+        controls_layout.addWidget(spacer)
+
+        # --- Global Search Box ---
+        controls_layout.addWidget(QtWidgets.QLabel("Global Search:"))
+        self.global_search_box = QtWidgets.QLineEdit()
+        self.global_search_box.setPlaceholderText("Search all log messages...")
+        self.global_search_box.setClearButtonEnabled(True)
+        self.global_search_box.setMinimumWidth(300)
+        controls_layout.addWidget(self.global_search_box)
+
         controls_layout.addStretch()
         section_layout.addWidget(controls_widget)
 
@@ -937,7 +953,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         dialog.setWindowTitle("About Timeline Log Analyzer")
         dialog.setIcon(QtWidgets.QMessageBox.Information)
 
-        title = "<h2 style='text-align:center;'>Timeline Log Analyzer v6.0</h2>"
+        title = "<h2 style='text-align:center;'>Timeline Log Analyzer v7.0</h2>"
         copyright_text = "<p style='text-align:center;'>Copyright &copy; 2024 iObeya</p>"
         vibe_text = "<p style='text-align:center;'>100% VibeCoded by JR</p>"
         easter_egg_hint = "<p style='text-align:center; color: #888;'><i>(Psst... try clicking me)</i></p>"
@@ -976,7 +992,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
 def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("Timeline Log Analyzer")
-    app.setApplicationVersion("6.0")
+    app.setApplicationVersion("7.0")
     app.setOrganizationName("LogAnalyzer")
 
     # Set application icon

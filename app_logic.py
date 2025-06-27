@@ -8,11 +8,13 @@ import os
 import re
 import json
 import locale
+from search_engine import SearchEngine
 
 class AppLogic(QtCore.QObject):
-    def __init__(self, main_window):
+    def __init__(self, main_window, status_bar):
         super().__init__()
         self.mw = main_window
+        self.status_bar = status_bar
         self.datetime_format_for_parsing = '%Y-%m-%d %H:%M:%S'
         self.selected_log_levels = {'INFO': True, 'WARN': True, 'ERROR': True, 'DEBUG': True}
         self.message_types_data_for_list = pd.DataFrame(columns=['logger_name', 'count'])
@@ -21,12 +23,87 @@ class AppLogic(QtCore.QObject):
         self.timeline_filter_end_time = None
         self.current_search_text = ""
         self.active_filter_name = "None"
-        self.active_filter_loggers = set() # A set for efficient lookup
+        self.active_filter_loggers = set()
+
+        # --- Full-Text Search Engine ---
+        self.search_engine = SearchEngine()
+        self.global_search_query = ""
+        self.global_search_timer = QtCore.QTimer()
+        self.global_search_timer.setSingleShot(True)
+        self.global_search_timer.timeout.connect(self._apply_search_filter_and_update_views)
+
+    def update_indexing_progress(self, current, total):
+        """Update the status bar with indexing progress."""
+        if self.status_bar:
+            progress = (current / total) * 100
+            self.status_bar.showMessage(f"Indexing for search... {progress:.0f}%")
+            QtCore.QCoreApplication.processEvents() # Force UI update
 
     def set_full_log_data(self, df):
-        """Passes the full DataFrame to the timeline canvas for its internal caching."""
+        """Passes the full DataFrame to the timeline canvas and indexes it for search."""
         if self.mw.timeline_canvas:
             self.mw.timeline_canvas.set_full_log_data(df)
+
+        # --- Index data for FTS ---
+        if df is not None and not df.empty:
+            try:
+                self.status_bar.showMessage("Preparing data for search indexing...", 0)
+                QtCore.QCoreApplication.processEvents()
+
+                # This pattern must match the one in log_processing.py
+                entry_pattern = re.compile(
+                    r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+'
+                    r'(INFO|WARN|ERROR|DEBUG)\s+'
+                    r'\[(.*?)\]\s+' # Logger name in brackets
+                    r'(.*)' # The rest of the line is the message
+                )
+
+                grouped_by_file = df.groupby('source_file_path')
+                messages_to_index = []
+
+                for file_path, group in grouped_by_file:
+                    try:
+                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            lines = f.readlines()
+                        
+                        for index, row in group.iterrows():
+                            line_num = row['line_number']
+                            if 1 <= line_num <= len(lines):
+                                line_content = lines[line_num - 1]
+                                match = entry_pattern.match(line_content)
+                                if match:
+                                    # The full message is the 4th capture group
+                                    messages_to_index.append(match.group(4).strip())
+                                else:
+                                    # Fallback to preview if line format is unexpected
+                                    messages_to_index.append(row['message_preview'])
+                            else:
+                                # Fallback for out-of-bounds line number
+                                messages_to_index.append(row['message_preview'])
+
+                    except Exception as e:
+                        print(f"[AppLogic] Warning: Could not process file {file_path} for indexing: {e}")
+                        # Fallback for all entries in the failed file
+                        for index, row in group.iterrows():
+                            messages_to_index.append(row['message_preview'])
+
+                self.status_bar.showMessage("Indexing log data for full-text search...", 0)
+                QtCore.QCoreApplication.processEvents()
+                self.search_engine.index_data(messages_to_index, self.update_indexing_progress)
+                self.status_bar.showMessage("Indexing complete.", 3000)
+
+            except Exception as e:
+                import traceback
+                print(f"Error during FTS indexing preparation: {e}")
+                print(traceback.format_exc())
+                self.status_bar.showMessage("Error during search indexing.", 5000)
+        else:
+            self.search_engine.close() # Clear any old index
+
+    def update_status_bar_message(self, message, timeout=0):
+        if self.status_bar:
+            self.status_bar.showMessage(message, timeout)
+            QtWidgets.QApplication.processEvents() # Force UI update
 
     # ... (reset_all_filters_and_view, _rebuild_message_types_data_and_list)
     # ... (trigger_timeline_update_from_selection, on_granularity_changed, on_slider_value_changed)
@@ -107,7 +184,13 @@ class AppLogic(QtCore.QObject):
             self.mw._exit_batch_update()
 
         # Apply all (now reset) filters to update the main list and timeline.
-        self._apply_filters_and_update_views()
+        self._apply_filters_and_update_views(refresh_filter_categories=True)
+        
+        # On initial load, programmatically click the "Top 10" button to select the most frequent message types.
+        # Using .click() simulates a user action, ensuring all connected signals are properly emitted via the event loop.
+        if initial_load:
+            if hasattr(self.mw, 'select_top10_btn'):
+                self.mw.select_top10_btn.click()
 
         if not initial_load and self.mw.statusBar():
             self.mw.statusBar().showMessage("Vue et filtres réinitialisés", 3000)
@@ -166,35 +249,27 @@ class AppLogic(QtCore.QObject):
                     btn.setText(f"{level}: {count:,}")
                     btn.setChecked(self.selected_log_levels.get(level, False))
 
-    def _rebuild_message_types_data_and_list(self, select_all_visible=False):
-        if not hasattr(self.mw, 'log_entries_full') or self.mw.log_entries_full.empty:
-            self.message_types_data_for_list = pd.DataFrame(columns=['logger_name', 'count'])
-            if self.mw.message_types_tree:
-                self.mw.message_types_tree.clear()
-            return
+    def _rebuild_message_types_data_and_list(self, source_df=None, select_all_visible=False):
+        if source_df is None:
+            if not hasattr(self.mw, 'log_entries_full') or self.mw.log_entries_full.empty:
+                df_to_process = pd.DataFrame(columns=['logger_name', 'log_level'])
+            else:
+                selected_levels = {level for level, is_selected in self.selected_log_levels.items() if is_selected}
+                df_to_process = self.mw.log_entries_full[self.mw.log_entries_full['log_level'].isin(selected_levels)]
+        else:
+            df_to_process = source_df
 
-        selected_levels = {level for level, is_selected in self.selected_log_levels.items() if is_selected}
-        
-        # Filter by selected log levels
-        filtered_df = self.mw.log_entries_full[self.mw.log_entries_full['log_level'].isin(selected_levels)]
-        
-        if filtered_df.empty:
+        if df_to_process.empty:
             self.message_types_data_for_list = pd.DataFrame(columns=['logger_name', 'count'])
         else:
-            # Calculate logger counts
-            logger_counts_series = filtered_df['logger_name'].value_counts()
-            
-            # Filter by search text if any
+            logger_counts_series = df_to_process['logger_name'].value_counts()
             search_text = self.mw.message_type_search_input.text().lower() if self.mw.message_type_search_input else ""
             if search_text:
-                # Ensure index is string type before using .str accessor
                 if not logger_counts_series.empty and pd.api.types.is_string_dtype(logger_counts_series.index.dtype):
                     logger_counts_series = logger_counts_series[logger_counts_series.index.str.lower().str.contains(search_text, regex=False)]
-                elif not logger_counts_series.empty: # Handle non-string indices if they occur, though logger_name should be string
+                elif not logger_counts_series.empty:
                     logger_counts_series = logger_counts_series[[str(idx).lower().find(search_text) != -1 for idx in logger_counts_series.index]]
 
-
-            # Convert to DataFrame and store
             if logger_counts_series.empty:
                 self.message_types_data_for_list = pd.DataFrame(columns=['logger_name', 'count'])
             else:
@@ -205,20 +280,14 @@ class AppLogic(QtCore.QObject):
         if self.mw.message_types_tree:
             tree = self.mw.message_types_tree
             tree.clear()
-            tree.setSortingEnabled(False) # Disable sorting while populating
-            
+            tree.setSortingEnabled(False)
             items = []
-            # Iterate over the DataFrame (value_counts sorts by count descending by default)
-            for index, row in self.message_types_data_for_list.iterrows():
-                logger_name = str(row['logger_name']) # Ensure logger_name is string for display
-                count = int(row['count']) # Ensure count is int
-                item = SortableTreeWidgetItem([logger_name, str(count)])
-                item.setCheckState(0, QtCore.Qt.Unchecked) # Default to unchecked
+            for _, row in self.message_types_data_for_list.iterrows():
+                item = SortableTreeWidgetItem([str(row['logger_name']), str(int(row['count']))])
+                item.setCheckState(0, QtCore.Qt.Unchecked)
                 items.append(item)
-            
             tree.addTopLevelItems(items)
-            tree.setSortingEnabled(True) # Re-enable sorting
-            
+            tree.setSortingEnabled(True)
             if select_all_visible:
                 self.set_check_state_for_visible_types(QtCore.Qt.Checked)
 
@@ -299,12 +368,12 @@ class AppLogic(QtCore.QObject):
             item = self.mw.message_types_tree.topLevelItem(i)
             item.setHidden(bool(search_text and search_text not in item.text(0).lower()))
         # The visibility of items in the tree has changed, which affects what _apply_filters_and_update_views considers.
-        self._apply_filters_and_update_views()
+        self._apply_filters_and_update_views(refresh_filter_categories=False)
 
     def on_message_type_item_changed(self, item, column):
         if not self.mw._is_batch_updating_ui:
             # A change in the message type tree selection is a filter change.
-            self._apply_filters_and_update_views()
+            self._apply_filters_and_update_views(refresh_filter_categories=False)
             
             # Also, the timeline needs to be updated based on the new selection of message types.
             selected_types_for_timeline = set()
@@ -319,10 +388,15 @@ class AppLogic(QtCore.QObject):
             if self.mw.timeline_canvas:
                 self.mw.timeline_canvas.update_display_config(selected_types_for_timeline, current_granularity)
 
+    def on_global_search_changed(self, text):
+        """Handle changes from the global search box with debouncing."""
+        self.global_search_query = text.strip()
+        self.global_search_timer.start(300) # Debounce for 300ms
+
     def on_search_changed(self, search_text):
         self.current_search_text = search_text.strip()
         # _apply_filters_and_update_views will handle empty log_entries_full or empty search_text
-        self._apply_filters_and_update_views()
+        self._apply_filters_and_update_views(refresh_filter_categories=True)
         
         # Status bar message is now handled by _apply_filters_and_update_views, 
         # but we can add a specific search status message here if desired, or let the generic one suffice.
@@ -332,70 +406,84 @@ class AppLogic(QtCore.QObject):
             else:
                 self.mw.statusBar().showMessage("Filtre de recherche effacé", 2000)
 
-    def _apply_filters_and_update_views(self):
-        if self.mw.log_entries_full.empty or self.mw._is_batch_updating_ui:
+    def _apply_search_filter_and_update_views(self):
+        """Apply search filter and update views."""
+        self._apply_filters_and_update_views(refresh_filter_categories=True)
+
+    def _apply_filters_and_update_views(self, refresh_filter_categories=False):
+        """Central method to apply all active filters and update all views.
+        The filtering order is:
+        1. Global Full-Text Search
+        2. Log Level
+        3. Timeline Time Range
+        4. Message Type List Selection
+        5. Main Search box (over the log list)
+        """
+        if self.mw.log_entries_full is None or self.mw.log_entries_full.empty:
+            self.update_status_bar_message("No log data to filter.")
             if self.mw.selected_messages_list: self.mw.selected_messages_list.set_all_items_data([])
-            # Potentially update status bar or other UI elements for empty/no results
+            self._rebuild_message_types_data_and_list(source_df=pd.DataFrame())
             return
 
-        # Start with a mask that includes all entries
-        combined_mask = pd.Series([True] * len(self.mw.log_entries_full), index=self.mw.log_entries_full.index)
+        # --- Start Filtering ---
+        current_df = self.mw.log_entries_full
 
-        # 1. Apply Log Level Filter
-        active_levels = [level for level, active in self.selected_log_levels.items() if active]
-        if len(active_levels) < len(self.selected_log_levels): # Only filter if not all levels are selected
-            combined_mask &= self.mw.log_entries_full['log_level'].isin(active_levels)
+        # 1. Global Full-Text Search
+        if self.global_search_query and self.search_engine.is_indexed:
+            matching_indices = self.search_engine.search(self.global_search_query)
+            current_df = current_df[current_df.index.isin(matching_indices)]
 
-        # 2. Apply Message Type Filter (from tree)
-        tree_selected_types = set()
+        # 2. Filter by Log Level
+        active_levels = {level for level, is_selected in self.selected_log_levels.items() if is_selected}
+        if len(active_levels) < len(self.selected_log_levels):
+            current_df = current_df[current_df['log_level'].isin(active_levels)]
+
+        # 3. Filter by Time (from timeline slider)
+        if self.timeline_filter_active and self.timeline_filter_start_time and self.timeline_filter_end_time:
+            current_df = current_df[
+                (current_df['datetime_obj'] >= self.timeline_filter_start_time) &
+                (current_df['datetime_obj'] < self.timeline_filter_end_time)
+            ]
+
+        # This dataframe has the global, level, and time filters applied.
+        # It's the source for rebuilding the message type list.
+        if refresh_filter_categories:
+            self._rebuild_message_types_data_and_list(source_df=current_df.copy())
+
+        # 4. Filter by selected message types in the list
+        selected_types = set()
+        is_any_type_checked = False
         if self.mw.message_types_tree:
             for i in range(self.mw.message_types_tree.topLevelItemCount()):
                 item = self.mw.message_types_tree.topLevelItem(i)
                 if item.checkState(0) == QtCore.Qt.Checked:
-                    tree_selected_types.add(item.text(0))
+                    is_any_type_checked = True
+                    selected_types.add(item.text(0))
         
-        if tree_selected_types: # Only filter if some types are selected
-            # Check if all types from the tree are selected. If so, no need to filter by type.
-            all_possible_types_in_tree = set()
-            if self.mw.message_types_tree:
-                for i in range(self.mw.message_types_tree.topLevelItemCount()):
-                    all_possible_types_in_tree.add(self.mw.message_types_tree.topLevelItem(i).text(0))
-            
-            if tree_selected_types != all_possible_types_in_tree:
-                 combined_mask &= self.mw.log_entries_full['logger_name'].isin(tree_selected_types)
+        if is_any_type_checked:
+             current_df = current_df[current_df['logger_name'].isin(selected_types)]
 
-        # 3. Apply Timeline Time Filter
-        if self.timeline_filter_active and self.timeline_filter_start_time and self.timeline_filter_end_time:
-            combined_mask &= (self.mw.log_entries_full['datetime_obj'] >= self.timeline_filter_start_time) & \
-                             (self.mw.log_entries_full['datetime_obj'] < self.timeline_filter_end_time)
+        # 5. Filter by main search widget text (self.current_search_text)
+        if self.current_search_text:
+            if 'message_preview' in current_df.columns:
+                current_df = current_df[current_df['message_preview'].str.contains(self.current_search_text, case=False, na=False, regex=False)]
 
-        # 4. Apply Search Text Filter
-        # Full-text search on 'message' is temporarily disabled as 'message' column is no longer in log_entries_full.
-        # This was removed to save memory. 'message_preview' could be searched if needed.
-        # if self.current_search_text:
-        #     # Assuming 'message_preview' could be a target for a limited search.
-        #     combined_mask &= self.mw.log_entries_full['message_preview'].str.contains(self.current_search_text, case=False, na=False, regex=False)
-
-        # Apply the combined mask
-        filtered_df = self.mw.log_entries_full[combined_mask]
-        filtered_entries_list = filtered_df.to_dict('records')
-
+        # Now current_df is fully filtered. Update the main message view.
+        filtered_entries_list = current_df.to_dict('records')
         if self.mw.selected_messages_list:
             self.mw.details_text.clear()
             self.mw.prev_message_button.setEnabled(False)
             self.mw.next_message_button.setEnabled(False)
             self.mw.selected_messages_list.set_all_items_data(filtered_entries_list)
-        
-        if self.mw.statusBar():
-            status_message = f"{len(filtered_entries_list)} messages affichés."
-            if self.timeline_filter_active:
-                status_message += f" (Intervalle: {self.timeline_filter_start_time.strftime('%H:%M:%S')} - {self.timeline_filter_end_time.strftime('%H:%M:%S')})"
-            self.mw.statusBar().showMessage(status_message, 3000)
 
-        # Update timeline view with the same set of selected types
+        if self.status_bar:
+            status_message = f"{len(filtered_entries_list):,} messages displayed."
+            self.status_bar.showMessage(status_message, 3000)
+
+        # Finally, update the timeline view with the currently selected types
         if self.mw.timeline_canvas:
             granularity = self.mw.granularity_combo.currentText() if self.mw.granularity_combo else 'minute'
-            self.mw.timeline_canvas.update_display_config(tree_selected_types, granularity)
+            self.mw.timeline_canvas.update_display_config(selected_types, granularity)
 
     def _fetch_full_log_entry(self, metadata_entry):
         source_file_path = metadata_entry.get('source_file_path')
@@ -448,7 +536,7 @@ class AppLogic(QtCore.QObject):
         self.timeline_filter_start_time = time_start
         self.timeline_filter_end_time = time_end
         
-        self._apply_filters_and_update_views()
+        self._apply_filters_and_update_views(refresh_filter_categories=False)
 
     def navigate_to_previous_message(self):
         self._navigate_message(-1)
@@ -609,7 +697,7 @@ class AppLogic(QtCore.QObject):
             self.mw._exit_batch_update()
         
         # Apply all current filters (including the new level filter) to update the main list
-        self._apply_filters_and_update_views()
+        self._apply_filters_and_update_views(refresh_filter_categories=False)
         
         # Update the timeline display based on the new selection of message types (which were rebuilt)
         # and current granularity.
@@ -753,42 +841,3 @@ class AppLogic(QtCore.QObject):
     def get_active_filter_name(self):
         """Returns the name of the currently active filter."""
         return self.active_filter_name
-
-    def _pan_timeline(self, direction):
-        # direction: -1 for left, 1 for right
-        canvas = getattr(self.mw, 'timeline_canvas', None)
-        if not canvas or not hasattr(canvas, 'ax'):
-            return
-        # Get current xlim (matplotlib date numbers)
-        xlim = canvas.ax.get_xlim()
-        view_width = xlim[1] - xlim[0]
-        if view_width <= 0:
-            return
-        # Determine pan step based on granularity
-        gran = getattr(canvas, 'current_time_granularity', 'minute')
-        if gran == 'minute':
-            step = view_width  # Pan by one window
-        elif gran == 'hour':
-            step = view_width
-        elif gran == 'day':
-            step = view_width
-        elif gran == 'week':
-            step = view_width
-        else:
-            step = view_width
-        # Pan
-        new_min = xlim[0] + direction * step
-        new_max = xlim[1] + direction * step
-        # Clamp to data range if available
-        min_num = getattr(canvas, 'full_time_min_num', None)
-        max_num = getattr(canvas, 'full_time_max_num', None)
-        if min_num is not None and max_num is not None:
-            if new_min < min_num:
-                new_min = min_num
-                new_max = min_num + view_width
-            if new_max > max_num:
-                new_max = max_num
-                new_min = max_num - view_width
-        # Update the view
-        if hasattr(canvas, 'plot_timeline'):
-            canvas.plot_timeline(xlim_override=(new_min, new_max))

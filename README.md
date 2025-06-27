@@ -20,6 +20,10 @@ This tool provides an interactive timeline-based interface to help developers an
 -   **Application Icon**: Features a custom application icon for better desktop integration.
 -   **Message Navigation**: Quickly navigate between log entries of the same type directly from the details panel using "Next" and "Previous" buttons.
 
+## What's New in Version 7.0
+
+- **Smart Initial View**: To accelerate initial analysis, the application now automatically selects the top 10 most frequent message types when a log file is first loaded. This provides an immediate, focused view on the most active loggers.
+
 ## Gallery
 
 ### Main Application View
@@ -95,6 +99,13 @@ python iobeya_log_analyzer.py
       at com.iobeya.service.Database.executeQuery(Database.java:101)
       at com.iobeya.service.RoomService.loadData(RoomService.java:50)
     ```
+
+## Changelog
+
+### v7.0
+- **Feature**: Implemented a powerful, indexed full-text search engine for fast querying of all log messages.
+- **Feature**: Added a "Smart Initial View" that automatically selects the top 10 most frequent message types on first load to accelerate analysis.
+- **Enhancement**: Updated application version to 7.0.
 
 ## Expected Log Format
 
