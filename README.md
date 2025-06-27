@@ -27,6 +27,7 @@ This tool provides an interactive timeline-based interface to help developers an
 ## Gallery
 
 ### Main Application View
+Example view of the main application window with the smart initial view feature enabled.
 ![Main Application View](images/application.jpg)
 
 ### Advanced Archive Loading
