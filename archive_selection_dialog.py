@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import re
 import os
 import zipfile
+from filter_crud_dialog import FilterCRUDDialog
 
 class ArchiveSelectionDialog(QtWidgets.QDialog):
     def __init__(self, archive_path, parent=None):
@@ -81,6 +82,11 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
         self.populate_filter_combo_box()
         filter_layout.addWidget(filter_selection_label, 5, 0)
         filter_layout.addWidget(self.filter_combo_box, 5, 1)
+
+        # Add button to open filter management dialog
+        self.manage_filters_button = QtWidgets.QPushButton("Manage Filters")
+        self.manage_filters_button.clicked.connect(self.open_filter_management_dialog)
+        filter_layout.addWidget(self.manage_filters_button, 5, 2)
 
         filter_group.setLayout(filter_layout)
         layout.addWidget(filter_group)
@@ -277,6 +283,17 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
         # Pass the selected filter to the parent application logic
         self.parent().apply_selected_filter(selected_filter)
         super().accept()
+
+    def open_filter_management_dialog(self):
+        print("Opening filter management dialog...")
+        filter_crud_dialog = FilterCRUDDialog(self.parent().last_filter_directory, self)
+        filter_crud_dialog.setWindowModality(QtCore.Qt.NonModal)
+        filter_crud_dialog.setWindowFlags(filter_crud_dialog.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        filter_crud_dialog.setFocusPolicy(QtCore.Qt.StrongFocus)
+        filter_crud_dialog.show()
+        filter_crud_dialog.raise_()
+        filter_crud_dialog.activateWindow()
+        print("Filter management dialog opened.")
 
 if __name__ == '__main__':
     import sys

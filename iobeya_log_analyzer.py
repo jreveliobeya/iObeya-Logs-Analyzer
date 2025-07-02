@@ -806,9 +806,16 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
                 self.last_filter_directory = new_dir
 
     def show_filter_crud_dialog(self):
+        print("Opening filter management dialog...")
         if self.filter_crud_dialog is None:
             self.filter_crud_dialog = FilterCRUDDialog(self.last_filter_directory, self)
+        self.filter_crud_dialog.setWindowModality(QtCore.Qt.NonModal)
+        self.filter_crud_dialog.setWindowFlags(self.filter_crud_dialog.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        self.filter_crud_dialog.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.filter_crud_dialog.show()
+        self.filter_crud_dialog.raise_()
+        self.filter_crud_dialog.activateWindow()
+        print("Filter management dialog opened.")
 
     def show_stats_panel(self):
         if self.log_entries_full.empty:
