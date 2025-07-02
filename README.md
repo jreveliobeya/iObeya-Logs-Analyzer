@@ -2,6 +2,8 @@
 
 A powerful desktop application for analyzing and visualizing iObeya log files, designed to handle large single logs and multi-file archives with ease.
 
+**For a full, interactive documentation, please [view the HTML version here](./docs/index.html).**
+
  
 ## Overview
 

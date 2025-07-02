@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iObeya Log Analyzer - Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>iObeya Log Analyzer</h1>
+        <p>A powerful desktop application for analyzing and visualizing iObeya log files, designed to handle large single logs and multi-file archives with ease.</p>
+    </header>
+
+    <nav>
+        <a href="#overview">Overview</a>
+        <a href="#features">Features</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#installation">Installation</a>
+        <a href="#usage">Usage</a>
+    </nav>
+
+    <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>This tool provides an interactive timeline-based interface to help developers and support engineers navigate through thousands of log entries efficiently. It allows for rapid filtering by time, log level, and message type (logger), and supports loading compressed <code>.log.gz</code> files and <code>.zip</code> archives. Its primary goal is to turn complex log analysis from a chore into a fast and intuitive process.</p>
+        </section>
+
+        <section id="features">
+            <h2>Key Features</h2>
+            <ul>
+                <li><strong>Interactive Timeline</strong>: Visualize log entry distribution over time. Click and drag to instantly filter by a specific time range.</li>
+                <li><strong>Multi-Level Filtering</strong>: Combine filters for log level, time range, message type, and free-text search to quickly isolate events.</li>
+                <li><strong>Advanced Archive Loading</strong>: A dedicated dialog provides precise control for loading files from <code>.zip</code> archives, allowing selection by filename patterns and date ranges.</li>
+                <li><strong>Gzip & Encoding Support</strong>: Automatically decompresses <code>.log.gz</code> files and handles multiple text encodings (<code>UTF-8</code>, <code>latin-1</code>, etc.).</li>
+                <li><strong>Detailed View</strong>: A dedicated panel shows the full, multi-line content of any selected log entry, including full stack traces.</li>
+                <li><strong>Rich Statistics</strong>: An integrated dialog displays a breakdown of log levels and a Pareto chart of the most frequent message types, helping to identify the most common issues at a glance.</li>
+                <li><strong>Filter Management</strong>: Save a complex set of message type filters to a file and re-apply it later, perfect for investigating recurring problems.</li>
+                <li><strong>Data Export</strong>: Export the currently filtered log data to a CSV file for reporting or further analysis.</li>
+                <li><strong>Welcome Screen</strong>: A helpful startup dialog provides quick access to recent files and actions to load new logs, streamlining the initial workflow.</li>
+                <li><strong>Application Icon</strong>: Features a custom application icon for better desktop integration.</li>
+                <li><strong>Message Navigation</strong>: Quickly navigate between log entries of the same type directly from the details panel using "Next" and "Previous" buttons.</li>
+            </ul>
+             <h3>What's New in Version 7.0</h3>
+            <ul>
+                <li><strong>Smart Initial View</strong>: To accelerate initial analysis, the application now automatically selects the top 10 most frequent message types when a log file is first loaded. This provides an immediate, focused view on the most active loggers.</li>
+            </ul>
+        </section>
+
+        <section id="gallery">
+            <h2>Gallery</h2>
+            <div class="gallery-grid">
+                <figure>
+                    <img src="../images/application.jpg" alt="Main Application View">
+                    <figcaption>Main Application View</figcaption>
+                </figure>
+                <figure>
+                    <img src="../images/load_archive.jpg" alt="Advanced Archive Loading">
+                    <figcaption>Advanced Archive Loading</figcaption>
+                </figure>
+                <figure>
+                    <img src="../images/manage_filters.jpg" alt="Filter Management">
+                    <figcaption>Filter Management</figcaption>
+                </figure>
+                <figure>
+                    <img src="../images/stats_dialog.jpg" alt="Statistics Dialog">
+                    <figcaption>Statistics Dialog</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <section id="installation">
+            <h2>Installation</h2>
+            <h3>Prerequisites</h3>
+            <ul>
+                <li>Python 3.6+</li>
+                <li>An environment manager like <code>venv</code> or <code>conda</code> is recommended.</li>
+            </ul>
+
+            <h3>Setup Steps</h3>
+            <ol>
+                <li><strong>Clone the repository:</strong>
+                    <pre><code>git clone https://github.com/jreveliobeya/iObeya-Logs-Analyzer.git
+cd iObeya-Logs-Analyzer</code></pre>
+                </li>
+                <li><strong>Create and activate a virtual environment:</strong>
+                    <p>On macOS / Linux:</p>
+                    <pre><code>python3 -m venv venv
+source venv/bin/activate</code></pre>
+                    <p>On Windows:</p>
+                    <pre><code>python -m venv venv
+.\venv\Scripts\activate</code></pre>
+                </li>
+                <li>
+                    <strong>IMPORTANT: Upgrade packaging tools</strong>
+                    <p>Before installing the requirements, especially on Windows, it's crucial to upgrade pip, setuptools, and wheel to avoid issues with packages like Matplotlib. This resolves the <code>BackendUnavailable: Cannot import 'setuptools.build_meta'</code> error.</p>
+                    <pre><code>python -m pip install --upgrade pip setuptools wheel</code></pre>
+                </li>
+                <li><strong>Install the required packages:</strong>
+                    <pre><code>pip install -r requirements.txt</code></pre>
+                </li>
+            </ol>
+        </section>
+
+        <section id="usage">
+            <h2>Usage</h2>
+            <p>To run the application, execute the main script from the project's root directory:</p>
+            <pre><code>python iobeya_log_analyzer.py</code></pre>
+            
+            <h3>Loading Logs</h3>
+            <ul>
+                <li><strong>Load Single File</strong>: Use <code>File > Load Log File</code> to open a single <code>.log</code> or <code>.log.gz</code> file.</li>
+                <li><strong>Load Archive</strong>: Use <code>File > Load Log Archive</code> to open a <code>.zip</code> archive. This opens the <strong>Archive Selection Dialog</strong>, where you can filter files by name (e.g., <code>app</code>, <code>error</code>) and date range before loading.</li>
+            </ul>
+
+            <h3>The Interface</h3>
+            <ul>
+                <li><strong>Timeline (Top)</strong>: Shows log volume over time. Click and drag to select a time range. Use the granularity dropdown (Minute, Hour, Day) and the pan/zoom sliders to navigate.</li>
+                <li><strong>Filters & Message Types (Left)</strong>: Contains controls for filtering.</li>
+                <li><strong>Log Entries (Right)</strong>: Displays the filtered log entries. The search bar provides free-text filtering. Click an entry to see its full content in the panel below.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>iObeya Log Analyzer Documentation</p>
+    </footer>
+</body>
+</html>
