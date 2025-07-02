@@ -841,3 +841,15 @@ class AppLogic(QtCore.QObject):
     def get_active_filter_name(self):
         """Returns the name of the currently active filter."""
         return self.active_filter_name
+
+    def apply_filter_by_name(self, filter_name):
+        """Apply the filter by its name."""
+        filter_path = os.path.join(self.mw.last_filter_directory, filter_name)
+        if os.path.exists(filter_path):
+            with open(filter_path, 'r', encoding='utf-8') as f:
+                filter_data = json.load(f)
+                loggers = filter_data.get('loggers', [])
+                self.apply_filter_from_dialog(filter_name, loggers)
+                print(f"Filter '{filter_name}' applied with loggers: {loggers}")
+        else:
+            print(f"Filter '{filter_name}' not found.")

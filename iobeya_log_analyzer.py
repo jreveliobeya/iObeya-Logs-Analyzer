@@ -777,9 +777,11 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             self.timeline_canvas.update_display_config(set(), current_granularity)
             self.update_timeline_sliders_range(0, 0)
 
-
-
-
+    def apply_selected_filter(self, selected_filter):
+        """Apply the selected filter to the log loading process."""
+        # Assuming AppLogic has a method to apply a filter by name
+        self.app_logic.apply_filter_by_name(selected_filter)
+        print(f"Applied filter: {selected_filter}")
 
     def set_current_temp_dir(self, path):
         self.current_temp_dir = path

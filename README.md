@@ -84,7 +84,7 @@ python iobeya_log_analyzer.py
 ### Loading Logs
 
 -   **Load Single File**: Use `File > Load Log File` to open a single `.log` or `.log.gz` file.
--   **Load Archive**: Use `File > Load Log Archive` to open a `.zip` archive. This opens the **Archive Selection Dialog**, where you can filter files by name (e.g., `app`, `error`) and date range before loading.
+-   **Load Archive**: Use `File > Load Log Archive` to open a `.zip` archive. This opens the **Archive Selection Dialog**, where you can filter files by name (e.g., `app`, `error`) and date range before loading. You can also select a pre-saved filter from the combo box to apply specific loggers.
 
 ### The Interface
 

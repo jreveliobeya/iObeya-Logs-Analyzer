@@ -75,6 +75,13 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
         self.full_text_indexing_checkbox.setChecked(True)
         filter_layout.addWidget(self.full_text_indexing_checkbox, 4, 0, 1, 2)  # Span two columns
 
+        # Filter selection combo box
+        filter_selection_label = QtWidgets.QLabel("Select Filter:")
+        self.filter_combo_box = QtWidgets.QComboBox()
+        self.populate_filter_combo_box()
+        filter_layout.addWidget(filter_selection_label, 5, 0)
+        filter_layout.addWidget(self.filter_combo_box, 5, 1)
+
         filter_group.setLayout(filter_layout)
         layout.addWidget(filter_group)
 
@@ -107,6 +114,14 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
         
         self.select_all_button.clicked.connect(lambda: self.set_visible_items_check_state(QtCore.Qt.Checked))
         self.deselect_all_button.clicked.connect(lambda: self.set_visible_items_check_state(QtCore.Qt.Unchecked))
+
+    def populate_filter_combo_box(self):
+        # Load filters from last_filter_directory
+        filter_directory = self.parent().last_filter_directory
+        if os.path.exists(filter_directory):
+            filters = [f for f in os.listdir(filter_directory) if os.path.isfile(os.path.join(filter_directory, f))]
+            self.filter_combo_box.clear()
+            self.filter_combo_box.addItems(filters)
 
     def _on_last_n_days_changed(self, days):
         if not self.max_date_in_files:
@@ -256,6 +271,12 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
         Returns True if full-text indexing is enabled, False otherwise
         """
         return self.full_text_indexing_checkbox.isChecked()
+
+    def accept(self):
+        selected_filter = self.filter_combo_box.currentText()
+        # Pass the selected filter to the parent application logic
+        self.parent().apply_selected_filter(selected_filter)
+        super().accept()
 
 if __name__ == '__main__':
     import sys
