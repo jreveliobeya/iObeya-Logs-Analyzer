@@ -360,7 +360,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         layout.addWidget(self.details_text)
         return right_widget
 
-    def _initiate_loading_process(self, file_path=None, archive_path=None, selected_files=None):
+    def _initiate_loading_process(self, file_path=None, archive_path=None, selected_files=None, enable_full_text_indexing=False):
         path_to_add = file_path if file_path else archive_path
         if path_to_add:
             self.add_to_recent_files(path_to_add)
@@ -396,7 +396,8 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             datetime_format=self.app_logic.datetime_format_for_parsing,
             selected_files_from_archive=selected_files,
             temp_dir=self.current_temp_dir,
-            active_filter_loggers=self.app_logic.active_filter_loggers
+            active_filter_loggers=self.app_logic.active_filter_loggers,
+            enable_full_text_indexing=enable_full_text_indexing
         )
 
         self.loader_thread.status_update.connect(self.loading_dialog.update_status)
@@ -406,7 +407,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         self.loader_thread.total_progress_update.connect(self.loading_dialog.set_total_progress_value)
         self.loader_thread.message_count_update.connect(self.loading_dialog.update_message_count)
         
-        self.loader_thread.finished_loading.connect(self.on_log_data_loaded)
+        self.loader_thread.finished_loading.connect(lambda df, summary, cancelled: self.on_log_data_loaded(df, summary, cancelled, enable_full_text_indexing))
         self.loader_thread.error_occurred.connect(self.on_load_error)
         self.loader_thread.finished.connect(self.on_load_finished)
 
@@ -506,11 +507,12 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         if dialog.exec_():
             selected_files = dialog.get_selected_files()
             if selected_files:
-                self._initiate_loading_process(archive_path=archive_path, selected_files=selected_files)
+                enable_full_text_indexing = dialog.is_full_text_indexing_enabled()
+                self._initiate_loading_process(archive_path=archive_path, selected_files=selected_files, enable_full_text_indexing=enable_full_text_indexing)
             else:
                 QtWidgets.QMessageBox.information(self, "No Files Selected", "You did not select any files to load.")
 
-    def on_log_data_loaded(self, log_entries_df, failed_files_summary, was_cancelled_by_thread):
+    def on_log_data_loaded(self, log_entries_df, failed_files_summary, was_cancelled_by_thread, enable_full_text_indexing):
         # Always close the loading dialog first
         if self.loading_dialog:
             self.loading_dialog.accept()
@@ -535,7 +537,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
                 self.statusBar().showMessage("Loading cancelled. Discarded partial data.", 5000)
                 self.log_entries_full = pd.DataFrame() # Clear data
                 # Update canvas and UI with empty data
-                self.app_logic.set_full_log_data(self.log_entries_full)
+                self.app_logic.set_full_log_data(self.log_entries_full, enable_full_text_indexing)
                 self.app_logic.reset_all_filters_and_view(initial_load=True)
                 return # Stop further processing
 
@@ -559,7 +561,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             self.source_label.setText(f"Source: {self.current_loaded_source_name} ({source_type_str})")
 
         # Pass data to AppLogic/Canvas and reset the entire view, which triggers the timeline plot.
-        self.app_logic.set_full_log_data(self.log_entries_full)
+        self.app_logic.set_full_log_data(self.log_entries_full, enable_full_text_indexing)
         self.app_logic.reset_all_filters_and_view(initial_load=True)
 
         # Finally, show a summary of any files that failed to load
@@ -604,9 +606,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
 
     def reset_app_state_after_error(self, error_message: str):
         """Resets the application state and UI after a loading error."""
-        if self.loading_dialog and self.loading_dialog.isVisible():
-            self.loading_dialog.reject() # Close if still open
-
+        if self.loading_dialog and self.loading_dialog.isVisible(): self.loading_dialog.reject()
         if self.loader_thread and self.loader_thread.isRunning():
             self.loader_thread.stop() # Request thread to stop
             if not self.loader_thread.wait(1000): # Wait a bit for graceful exit
@@ -921,9 +921,10 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             if dialog.exec_():
                 selected_files = dialog.get_selected_files()
                 if selected_files:
-                    self._initiate_loading_process(archive_path=path, selected_files=selected_files)
+                    enable_full_text_indexing = dialog.is_full_text_indexing_enabled()
+                    self._initiate_loading_process(archive_path=path, selected_files=selected_files, enable_full_text_indexing=enable_full_text_indexing)
         else:
-            self._initiate_loading_process(file_path=path)
+            self._initiate_loading_process(file_path=path, enable_full_text_indexing=False)
 
     def open_recent_file(self):
         """Opens a file selected from the 'Recent Files' menu."""

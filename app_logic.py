@@ -39,13 +39,13 @@ class AppLogic(QtCore.QObject):
             self.status_bar.showMessage(f"Indexing for search... {progress:.0f}%")
             QtCore.QCoreApplication.processEvents() # Force UI update
 
-    def set_full_log_data(self, df):
-        """Passes the full DataFrame to the timeline canvas and indexes it for search."""
+    def set_full_log_data(self, df, enable_full_text_indexing):
+        """Passes the full DataFrame to the timeline canvas and indexes it for search if enabled."""
         if self.mw.timeline_canvas:
             self.mw.timeline_canvas.set_full_log_data(df)
 
-        # --- Index data for FTS ---
-        if df is not None and not df.empty:
+        # Conditionally index data for FTS
+        if enable_full_text_indexing and df is not None and not df.empty:
             try:
                 self.status_bar.showMessage("Preparing data for search indexing...", 0)
                 QtCore.QCoreApplication.processEvents()

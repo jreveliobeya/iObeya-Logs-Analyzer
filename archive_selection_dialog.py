@@ -70,6 +70,11 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
         filter_layout.addWidget(last_n_days_label, 3, 0)
         filter_layout.addWidget(self.last_n_days_spinbox, 3, 1)
 
+        # Full-text indexing checkbox
+        self.full_text_indexing_checkbox = QtWidgets.QCheckBox("Enable Full-Text Indexing")
+        self.full_text_indexing_checkbox.setChecked(True)
+        filter_layout.addWidget(self.full_text_indexing_checkbox, 4, 0, 1, 2)  # Span two columns
+
         filter_group.setLayout(filter_layout)
         layout.addWidget(filter_group)
 
@@ -245,6 +250,12 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
                 file_info = item.data(QtCore.Qt.UserRole)
                 selected_files.append(file_info['name'])
         return selected_files
+
+    def is_full_text_indexing_enabled(self):
+        """
+        Returns True if full-text indexing is enabled, False otherwise
+        """
+        return self.full_text_indexing_checkbox.isChecked()
 
 if __name__ == '__main__':
     import sys

@@ -22,10 +22,12 @@ This tool provides an interactive timeline-based interface to help developers an
 -   **Welcome Screen**: A helpful startup dialog provides quick access to recent files and actions to load new logs, streamlining the initial workflow.
 -   **Application Icon**: Features a custom application icon for better desktop integration.
 -   **Message Navigation**: Quickly navigate between log entries of the same type directly from the details panel using "Next" and "Previous" buttons.
+-   **Full-Text Indexing**: Optionally enable full-text indexing during archive loading to enhance search capabilities within the logs.
 
 ## What's New in Version 7.0
 
 - **Smart Initial View**: To accelerate initial analysis, the application now automatically selects the top 10 most frequent message types when a log file is first loaded. This provides an immediate, focused view on the most active loggers.
+- **Full-Text Indexing Checkbox**: Added a checkbox in the archive selection dialog to enable or disable full-text indexing during the loading process.
 
 ## Gallery
 

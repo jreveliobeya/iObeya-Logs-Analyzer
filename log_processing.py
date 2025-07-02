@@ -31,7 +31,7 @@ class LogLoaderThread(QThread):
     message_count_update = pyqtSignal(int, int) # Number of messages loaded so far
 
     def __init__(self, file_path=None, archive_path=None, datetime_format=None, 
-                 selected_files_from_archive=None, temp_dir=None, active_filter_loggers=None, parent=None):
+                 selected_files_from_archive=None, temp_dir=None, active_filter_loggers=None, parent=None, enable_full_text_indexing=False):
         super().__init__(parent)
         self.file_path = file_path
         self.archive_path = archive_path
@@ -42,6 +42,7 @@ class LogLoaderThread(QThread):
         self.total_messages_loaded = 0
         self.should_stop = False
         self.encodings_to_try = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+        self.enable_full_text_indexing = enable_full_text_indexing
 
     def run(self):
         all_log_entries = []
@@ -74,6 +75,11 @@ class LogLoaderThread(QThread):
                     except:
                         return datetime.max
                 all_log_entries.sort(key=sort_key)
+
+            # Conditionally perform full-text indexing
+            if self.enable_full_text_indexing:
+                self.status_update.emit("Performing full-text indexing...", "")
+                # Implement full-text indexing logic here
 
         except Exception as e:
             import traceback
@@ -220,4 +226,3 @@ class LogLoaderThread(QThread):
 
     def stop(self):
         self.should_stop = True
-
