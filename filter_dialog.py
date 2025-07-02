@@ -16,6 +16,7 @@ class FilterManagementDialog(QtWidgets.QDialog):
         self.filters_in_dir = {}  # Maps display name to the list of loggers
         self.selected_directory = None
         self.setupUi()
+        self.load_filters_from_directory(self.selected_directory)
 
     def setupUi(self):
         """Create and arrange the UI components for the dialog."""
@@ -31,11 +32,36 @@ class FilterManagementDialog(QtWidgets.QDialog):
         dir_layout.addWidget(self.dir_button)
         layout.addLayout(dir_layout)
 
-        # List to display found filters
-        layout.addWidget(QtWidgets.QLabel("Available Filters:"))
+        # Filter List
+        layout.addWidget(QtWidgets.QLabel("Filters:"))
         self.filter_list_widget = QtWidgets.QListWidget()
-        self.filter_list_widget.setToolTip("Double-click a filter to apply it.")
+        self.filter_list_widget.setToolTip("Select a filter to view its loggers.")
+        self.filter_list_widget.itemSelectionChanged.connect(self.display_loggers_for_selected_filter)
         layout.addWidget(self.filter_list_widget)
+
+        # Logger List
+        layout.addWidget(QtWidgets.QLabel("Loggers:"))
+        self.logger_list_widget = QtWidgets.QListWidget()
+        self.logger_list_widget.setToolTip("Loggers associated with the selected filter.")
+        layout.addWidget(self.logger_list_widget)
+
+        # Add/Remove Logger Buttons
+        logger_button_layout = QtWidgets.QHBoxLayout()
+        self.add_logger_button = QtWidgets.QPushButton("Add Logger")
+        self.remove_logger_button = QtWidgets.QPushButton("Remove Logger")
+        logger_button_layout.addWidget(self.add_logger_button)
+        logger_button_layout.addWidget(self.remove_logger_button)
+        layout.addLayout(logger_button_layout)
+
+        # CRUD Buttons
+        crud_button_layout = QtWidgets.QHBoxLayout()
+        self.create_button = QtWidgets.QPushButton("Create")
+        self.update_button = QtWidgets.QPushButton("Update")
+        self.delete_button = QtWidgets.QPushButton("Delete")
+        crud_button_layout.addWidget(self.create_button)
+        crud_button_layout.addWidget(self.update_button)
+        crud_button_layout.addWidget(self.delete_button)
+        layout.addLayout(crud_button_layout)
 
         # Standard dialog buttons
         button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
@@ -46,6 +72,11 @@ class FilterManagementDialog(QtWidgets.QDialog):
         button_box.accepted.connect(self.apply_filter) # OK button triggers accept
         button_box.rejected.connect(self.reject)   # Cancel button triggers reject
         self.filter_list_widget.itemDoubleClicked.connect(self.apply_filter)
+        self.create_button.clicked.connect(self.create_filter)
+        self.update_button.clicked.connect(self.update_filter)
+        self.delete_button.clicked.connect(self.delete_filter)
+        self.add_logger_button.clicked.connect(self.add_logger)
+        self.remove_logger_button.clicked.connect(self.remove_logger)
 
     def select_directory(self):
         """Open a dialog to select the directory containing filter files."""
@@ -108,3 +139,68 @@ class FilterManagementDialog(QtWidgets.QDialog):
     def get_selected_directory(self):
         """Returns the last successfully selected directory."""
         return self.selected_directory
+
+    def create_filter(self):
+        name, ok = QtWidgets.QInputDialog.getText(self, "Create Filter", "Enter filter name:")
+        if ok and name:
+            loggers, ok = QtWidgets.QInputDialog.getText(self, "Create Filter", "Enter loggers (comma-separated):")
+            if ok:
+                loggers_list = [logger.strip() for logger in loggers.split(',')]
+                file_path = os.path.join(self.selected_directory, f"{name}.json")
+                filter_data = {"name": name, "loggers": loggers_list}
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(filter_data, f, indent=4)
+                self.load_filters_from_directory(self.selected_directory)
+
+    def update_filter(self):
+        selected_items = self.filter_list_widget.selectedItems()
+        if selected_items:
+            current_name = selected_items[0].text()
+            current_loggers = ', '.join(self.filters_in_dir[current_name])
+            name, ok = QtWidgets.QInputDialog.getText(self, "Update Filter", "Edit filter name:", text=current_name)
+            if ok and name:
+                loggers, ok = QtWidgets.QInputDialog.getText(self, "Update Filter", "Edit loggers (comma-separated):", text=current_loggers)
+                if ok:
+                    loggers_list = [logger.strip() for logger in loggers.split(',')]
+                    file_path = os.path.join(self.selected_directory, f"{current_name}.json")
+                    filter_data = {"name": name, "loggers": loggers_list}
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        json.dump(filter_data, f, indent=4)
+                    self.load_filters_from_directory(self.selected_directory)
+
+    def delete_filter(self):
+        selected_items = self.filter_list_widget.selectedItems()
+        if selected_items:
+            current_name = selected_items[0].text()
+            reply = QtWidgets.QMessageBox.question(self, "Delete Filter", f"Are you sure you want to delete '{current_name}'?", QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
+            if reply == QtWidgets.QMessageBox.Yes:
+                file_path = os.path.join(self.selected_directory, f"{current_name}.json")
+                os.remove(file_path)
+                self.load_filters_from_directory(self.selected_directory)
+
+    def display_loggers_for_selected_filter(self):
+        self.logger_list_widget.clear()
+        selected_items = self.filter_list_widget.selectedItems()
+        if selected_items:
+            filter_name = selected_items[0].text()
+            loggers = self.filters_in_dir.get(filter_name, [])
+            self.logger_list_widget.addItems(loggers)
+
+    def add_logger(self):
+        selected_items = self.filter_list_widget.selectedItems()
+        if selected_items:
+            filter_name = selected_items[0].text()
+            logger, ok = QtWidgets.QInputDialog.getText(self, "Add Logger", "Enter logger name:")
+            if ok and logger:
+                self.filters_in_dir[filter_name].append(logger)
+                self.display_loggers_for_selected_filter()
+
+    def remove_logger(self):
+        selected_items = self.filter_list_widget.selectedItems()
+        if selected_items:
+            filter_name = selected_items[0].text()
+            selected_loggers = self.logger_list_widget.selectedItems()
+            if selected_loggers:
+                for item in selected_loggers:
+                    self.filters_in_dir[filter_name].remove(item.text())
+                self.display_loggers_for_selected_filter()

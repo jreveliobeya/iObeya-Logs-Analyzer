@@ -17,16 +17,17 @@ This tool provides an interactive timeline-based interface to help developers an
 -   **Gzip & Encoding Support**: Automatically decompresses `.log.gz` files and handles multiple text encodings (`UTF-8`, `latin-1`, etc.).
 -   **Detailed View**: A dedicated panel shows the full, multi-line content of any selected log entry, including full stack traces.
 -   **Rich Statistics**: An integrated dialog displays a breakdown of log levels and a Pareto chart of the most frequent message types, helping to identify the most common issues at a glance.
--   **Filter Management**: Save a complex set of message type filters to a file and re-apply it later, perfect for investigating recurring problems.
+-   **Enhanced Filter Management**: A sophisticated dialog allows for CRUD operations on filters and their associated loggers, providing a more intuitive interface for managing complex filter sets.
 -   **Data Export**: Export the currently filtered log data to a CSV file for reporting or further analysis.
 -   **Welcome Screen**: A helpful startup dialog provides quick access to recent files and actions to load new logs, streamlining the initial workflow.
 -   **Application Icon**: Features a custom application icon for better desktop integration.
 -   **Message Navigation**: Quickly navigate between log entries of the same type directly from the details panel using "Next" and "Previous" buttons.
 -   **Full-Text Indexing**: Optionally enable full-text indexing during archive loading to enhance search capabilities within the logs.
 
-## What's New in Version 7.0
+## What's New in Version 7.5
 
 - **Smart Initial View**: To accelerate initial analysis, the application now automatically selects the top 10 most frequent message types when a log file is first loaded. This provides an immediate, focused view on the most active loggers.
+- **Enhanced Filter Management**: The filter management dialog now supports CRUD operations with separate lists for filters and their associated loggers, allowing for easy addition and removal of loggers.
 - **Full-Text Indexing Checkbox**: Added a checkbox in the archive selection dialog to enable or disable full-text indexing during the loading process.
 
 ## Gallery
@@ -108,10 +109,11 @@ python iobeya_log_analyzer.py
 
 ## Changelog
 
-### v7.0
+### v7.5
 - **Feature**: Implemented a powerful, indexed full-text search engine for fast querying of all log messages.
 - **Feature**: Added a "Smart Initial View" that automatically selects the top 10 most frequent message types on first load to accelerate analysis.
-- **Enhancement**: Updated application version to 7.0.
+- **Feature**: Enhanced the filter management dialog to support CRUD operations with separate lists for filters and their associated loggers.
+- **Enhancement**: Updated application version to 7.5.
 
 ## Expected Log Format
 
@@ -132,7 +134,7 @@ YYYY-MM-DD HH:MM:SS LEVEL [logger_name] Message content
 
 ## Changelog
 
-### v6.0 (Current)
+### v6.0 (Previous)
 - **Cancellable Loading**: Implemented the ability to cancel an ongoing loading process, with an option to keep already loaded data.
 - **UI and Logic Overhaul**: Switched to a centralized `AppLogic` architecture for better maintainability.
 - **Performance Improvements**: Integrated `VirtualTreeWidget` for near-instant display of thousands of message types.
