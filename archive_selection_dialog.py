@@ -125,19 +125,33 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
         self.deselect_all_button.clicked.connect(lambda: self.set_visible_items_check_state(QtCore.Qt.Unchecked))
 
     def populate_filter_combo_box(self):
+        import json
         # Load filters from last_filter_directory
         filter_directory = self.parent().last_filter_directory
         self.filter_combo_box.clear()
         self.filter_combo_box.addItem('No Filter')
+        filter_names = []
         if os.path.exists(filter_directory):
-            filters = [f for f in os.listdir(filter_directory) if os.path.isfile(os.path.join(filter_directory, f))]
-            self.filter_combo_box.addItems(filters)
+            for f in os.listdir(filter_directory):
+                file_path = os.path.join(filter_directory, f)
+                if os.path.isfile(file_path) and f.lower().endswith('.json'):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as jf:
+                            data = json.load(jf)
+                            if isinstance(data, dict) and "name" in data:
+                                filter_names.append(data["name"])
+                    except Exception:
+                        continue
+            self.filter_combo_box.addItems(filter_names)
 
         # Set initial filter selection based on active_filter_name
-        active_filter_name = self.parent().settings.value("active_filter_name", "No Filter")
-        index = self.filter_combo_box.findText(active_filter_name)
-        if index != -1:
-            self.filter_combo_box.setCurrentIndex(index)
+        active_filter_name = self.initial_filter
+        if active_filter_name:
+            index = self.filter_combo_box.findText(active_filter_name)
+            if index != -1:
+                self.filter_combo_box.setCurrentIndex(index)
+            else:
+                self.filter_combo_box.setCurrentIndex(0)
         else:
             self.filter_combo_box.setCurrentIndex(0)
 
