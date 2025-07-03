@@ -53,6 +53,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         self.MAX_RECENT_FILES = 10
 
 
+
         self.app_logic = AppLogic(self, self.statusBar()) # Initialize AppLogic first
 
         self.message_type_search_timer = QtCore.QTimer()

@@ -16,6 +16,9 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
         self.min_date_in_files = None
         self.max_date_in_files = None
 
+        # Store the filter that was active when the dialog was opened
+        self.initial_filter = self.parent().app_logic.get_active_filter_name()
+
         self.setup_ui()
         self.populate_file_list()
 
@@ -124,10 +127,19 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
     def populate_filter_combo_box(self):
         # Load filters from last_filter_directory
         filter_directory = self.parent().last_filter_directory
+        self.filter_combo_box.clear()
+        self.filter_combo_box.addItem('No Filter')
         if os.path.exists(filter_directory):
             filters = [f for f in os.listdir(filter_directory) if os.path.isfile(os.path.join(filter_directory, f))]
-            self.filter_combo_box.clear()
             self.filter_combo_box.addItems(filters)
+
+        # Set initial filter selection based on active_filter_name
+        active_filter_name = self.parent().settings.value("active_filter_name", "No Filter")
+        index = self.filter_combo_box.findText(active_filter_name)
+        if index != -1:
+            self.filter_combo_box.setCurrentIndex(index)
+        else:
+            self.filter_combo_box.setCurrentIndex(0)
 
     def _on_last_n_days_changed(self, days):
         if not self.max_date_in_files:
@@ -280,8 +292,14 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
 
     def accept(self):
         selected_filter = self.filter_combo_box.currentText()
-        # Pass the selected filter to the parent application logic
-        self.parent().apply_selected_filter(selected_filter)
+
+        # Only update the app's filter if it has been changed in the dialog
+        if selected_filter != self.initial_filter:
+            if selected_filter == 'No Filter':
+                self.parent().app_logic.clear_active_filter()
+            else:
+                self.parent().app_logic.apply_filter_by_name(selected_filter)
+
         super().accept()
 
     def open_filter_management_dialog(self):

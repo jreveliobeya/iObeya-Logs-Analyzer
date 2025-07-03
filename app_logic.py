@@ -22,7 +22,7 @@ class AppLogic(QtCore.QObject):
         self.timeline_filter_start_time = None
         self.timeline_filter_end_time = None
         self.current_search_text = ""
-        self.active_filter_name = "None"
+        self.active_filter_name = "No Filter"
         self.active_filter_loggers = set()
 
         # --- Full-Text Search Engine ---
@@ -826,6 +826,7 @@ class AppLogic(QtCore.QObject):
         """Receives the filter data from the dialog and applies it."""
         self.active_filter_name = filter_name
         self.active_filter_loggers = set(loggers)
+        self.mw.settings.setValue("active_filter_name", filter_name) # Save to settings
         self.mw.active_filter_label.setText(f"Filter: {self.active_filter_name}")
         self.mw.active_filter_label.setToolTip(f"Active loggers: {', '.join(loggers)}")
         if not silent:
@@ -833,9 +834,10 @@ class AppLogic(QtCore.QObject):
 
     def clear_active_filter(self):
         """Clears the currently active filter."""
-        self.active_filter_name = "None"
+        self.active_filter_name = "No Filter"
         self.active_filter_loggers = set()
-        self.mw.active_filter_label.setText("Filter: None")
+        self.mw.settings.setValue("active_filter_name", "No Filter") # Save to settings
+        self.mw.active_filter_label.setText("Filter: No Filter")
         self.mw.active_filter_label.setToolTip("No pre-load filter is active.")
 
     def get_active_filter_name(self):
