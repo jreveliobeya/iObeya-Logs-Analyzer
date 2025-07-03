@@ -1,5 +1,19 @@
 # iObeya Log Analyzer
 
+## Changelog
+
+### Version 8.0 (2025-07-03)
+- Major filter management UI overhaul
+    - Unified, modern FilterManagementDialog used everywhere (including archive selection)
+    - Global logger list parsed from all filters; supports multi-select, search, and sorting
+    - Check all/uncheck all buttons for logger selection
+    - Immediate save of filter changes to JSON
+    - Logger selection is now a single button, not add/remove
+    - Filter combo box in archive selection dialog is updated after managing filters, but filter is only applied globally when OK is clicked
+- Numerous bugfixes and UX improvements
+
+
+
 A powerful desktop application for analyzing and visualizing iObeya log files, designed to handle large single logs and multi-file archives with ease.
 
 **For a full, interactive documentation, please [view the HTML version here](./docs/index.html).**

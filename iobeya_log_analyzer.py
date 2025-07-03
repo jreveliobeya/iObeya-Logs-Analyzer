@@ -25,7 +25,7 @@ from welcome_dialog import WelcomeDialog
 class LogAnalyzerApp(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("iObeya Log Analyzer - Version 7.5")
+        self.setWindowTitle("iObeya Log Analyzer - Version 8.0")
         self.resize(1600, 1000)
         self.log_entries_full = pd.DataFrame() # Initialize as DataFrame
         self.message_types_data_for_list = {}
@@ -110,7 +110,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
         toolbar.addSeparator()
         reset_view_action = QtWidgets.QAction("Reset View", self)
         reset_view_action.setToolTip("Reset all filters and timeline zoom")
-        reset_view_action.triggered.connect(lambda: self.app_logic.reset_all_filters_and_view(initial_load=False))
+        reset_view_action.triggered.connect(lambda: self.app_logic.reset_all_filters_and_view(initial_load=True))
         toolbar.addAction(reset_view_action)
         toolbar.addSeparator()
 
@@ -558,7 +558,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
             self.statusBar().showMessage("No log entries were loaded.", 5000)
 
         # Update UI elements
-        self.setWindowTitle(f"iObeya Log Analyzer - Version 7.5 - {self.current_loaded_source_name}")
+        self.setWindowTitle(f"iObeya Log Analyzer - Version 8.0 - {self.current_loaded_source_name}")
         if self.current_loaded_source_name:
             source_type_str = 'Archive' if self.loaded_source_type == 'archive' else 'File'
             self.source_label.setText(f"Source: {self.current_loaded_source_name} ({source_type_str})")
@@ -621,7 +621,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
 
         self.log_entries_full = pd.DataFrame() # Clear any partial data
         self.current_loaded_source_name = "Error during load"
-        self.setWindowTitle("iObeya Log Analyzer - Version 7.5 - Error")
+        self.setWindowTitle("iObeya Log Analyzer - Version 8.0 - Error")
 
         # Reset UI elements via AppLogic
         if hasattr(self, 'app_logic') and self.app_logic:
@@ -1010,7 +1010,7 @@ class LogAnalyzerApp(QtWidgets.QMainWindow):
 def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("iObeya Log Analyzer")
-    app.setApplicationVersion("7.5")
+    app.setApplicationVersion("8.0")
     app.setOrganizationName("LogAnalyzer")
 
     # Set application icon

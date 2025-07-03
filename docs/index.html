@@ -7,6 +7,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="changelog">
+  <h3>What's New in Version 8.0</h3>
+  <ul>
+    <li>Major filter management UI overhaul</li>
+    <ul>
+      <li>Unified, modern FilterManagementDialog used everywhere (including archive selection)</li>
+      <li>Global logger list parsed from all filters; supports multi-select, search, and sorting</li>
+      <li>Check all/uncheck all buttons for logger selection</li>
+      <li>Immediate save of filter changes to JSON</li>
+      <li>Logger selection is now a single button, not add/remove</li>
+      <li>Filter combo box in archive selection dialog is updated after managing filters, but filter is only applied globally when OK is clicked</li>
+    </ul>
+    <li>Numerous bugfixes and UX improvements</li>
+  </ul>
+</div>
+
     <header>
         <h1>iObeya Log Analyzer</h1>
         <p>A powerful desktop application for analyzing and visualizing iObeya log files, designed to handle large single logs and multi-file archives with ease.</p>
@@ -42,7 +58,7 @@
                 <li><strong>Message Navigation</strong>: Quickly navigate between log entries of the same type directly from the details panel using "Next" and "Previous" buttons.</li>
                 <li><strong>Full-Text Indexing</strong>: Optionally enable full-text indexing during archive loading to enhance search capabilities within the logs.</li>
             </ul>
-             <h3>What's New in Version 7.5</h3>
+             <h3>What's New in Version 8.0</h3>
             <ul>
                 <li><strong>Smart Initial View</strong>: To accelerate initial analysis, the application now automatically selects the top 10 most frequent message types when a log file is first loaded. This provides an immediate, focused view on the most active loggers.</li>
                 <li><strong>Full-Text Indexing Checkbox</strong>: Added a checkbox in the archive selection dialog to enable or disable full-text indexing during the loading process.</li>

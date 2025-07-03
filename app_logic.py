@@ -846,7 +846,7 @@ class AppLogic(QtCore.QObject):
 
     def apply_filter_by_name(self, filter_name):
         """Apply the filter by its name."""
-        filter_path = os.path.join(self.mw.last_filter_directory, filter_name)
+        filter_path = os.path.join(self.mw.last_filter_directory, f'{filter_name}.json')
         if os.path.exists(filter_path):
             with open(filter_path, 'r', encoding='utf-8') as f:
                 filter_data = json.load(f)

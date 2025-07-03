@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import re
 import os
 import zipfile
-from filter_crud_dialog import FilterCRUDDialog
+from filter_dialog import FilterManagementDialog
 
 class ArchiveSelectionDialog(QtWidgets.QDialog):
     def __init__(self, archive_path, parent=None):
@@ -318,14 +318,26 @@ class ArchiveSelectionDialog(QtWidgets.QDialog):
 
     def open_filter_management_dialog(self):
         print("Opening filter management dialog...")
-        filter_crud_dialog = FilterCRUDDialog(self.parent().last_filter_directory, self)
-        filter_crud_dialog.setWindowModality(QtCore.Qt.NonModal)
-        filter_crud_dialog.setWindowFlags(filter_crud_dialog.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-        filter_crud_dialog.setFocusPolicy(QtCore.Qt.StrongFocus)
-        filter_crud_dialog.show()
-        filter_crud_dialog.raise_()
-        filter_crud_dialog.activateWindow()
+        filter_mgmt_dialog = FilterManagementDialog(self)
+        # Set the initial directory for filters
+        filter_dir = getattr(self.parent(), 'last_filter_directory', None)
+        if filter_dir:
+            filter_mgmt_dialog.set_initial_directory(filter_dir)
+        filter_mgmt_dialog.setWindowModality(QtCore.Qt.NonModal)
+        filter_mgmt_dialog.setWindowFlags(filter_mgmt_dialog.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        filter_mgmt_dialog.setFocusPolicy(QtCore.Qt.StrongFocus)
+        filter_mgmt_dialog.filter_selected.connect(self._on_filter_selected_from_mgmt)
+        filter_mgmt_dialog.finished.connect(self.populate_filter_combo_box)
+        filter_mgmt_dialog.show()
+        filter_mgmt_dialog.raise_()
+        filter_mgmt_dialog.activateWindow()
         print("Filter management dialog opened.")
+
+    def _on_filter_selected_from_mgmt(self, filter_name, loggers):
+        # Only set the combo box selection, do NOT apply the filter yet
+        idx = self.filter_combo_box.findText(filter_name)
+        if idx >= 0:
+            self.filter_combo_box.setCurrentIndex(idx)
 
 if __name__ == '__main__':
     import sys
